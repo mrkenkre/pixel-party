@@ -11,6 +11,7 @@
         <span class="label">{{ 'room.lobby.roomCode' | transloco }}</span>
         <span class="code">{{ store.code() }}</span>
         <span class="share">{{ 'room.lobby.share' | transloco }}</span>
+        <span class="share tv">{{ 'room.lobby.tvHint' | transloco: { code: store.code() } }}</span>
         <div class="invite">
           <span class="url">{{ store.inviteUrl }}</span>
           <button type="button" class="arcade-btn small" (click)="copyInvite()">
@@ -316,6 +317,9 @@
 
   <!-- ── Always-visible action bar ───────────────────────────────────── -->
   <div class="actions">
+    @if (store.watching()) {
+      <span class="hint blink">{{ 'room.lobby.watchingHint' | transloco }}</span>
+    } @else {
     <button
       type="button"
       class="arcade-btn"
@@ -348,6 +352,7 @@
       }
     } @else {
       <span class="hint blink">{{ 'room.lobby.waitingHost' | transloco }}</span>
+    }
     }
   </div>
 </section>

@@ -85,13 +85,17 @@ export class RoomComponent implements OnInit {
     const q = this.route.snapshot.queryParamMap
     const qColor = q.get('color')
     const qAvatar = q.get('avatar')
-    this.store.connect(code, {
-      name: q.get('name')?.trim() || `Player-${pick(AVATARS)}`,
-      color: qColor && PLAYER_COLORS.includes(qColor) ? qColor : pick(PLAYER_COLORS),
-      avatar:
-        qAvatar && (AVATARS as readonly string[]).includes(qAvatar)
-          ? (qAvatar as AvatarId)
-          : pick(AVATARS),
-    })
+    this.store.connect(
+      code,
+      {
+        name: q.get('name')?.trim() || `Player-${pick(AVATARS)}`,
+        color: qColor && PLAYER_COLORS.includes(qColor) ? qColor : pick(PLAYER_COLORS),
+        avatar:
+          qAvatar && (AVATARS as readonly string[]).includes(qAvatar)
+            ? (qAvatar as AvatarId)
+            : pick(AVATARS),
+      },
+      q.get('watch') === '1',
+    )
   }
 }

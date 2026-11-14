@@ -29,7 +29,12 @@ export interface SocketData {
   connId: string
   playerId?: string
   isHost: boolean
+  // A WATCH socket (fork extra): subscribed to the room topic, never holds a seat.
+  watcher?: boolean
 }
+
+// Watchers per room (TVs/laptops showing the game); far above any real need, low enough to bound load.
+export const MAX_WATCHERS = 10
 
 // The socket surface the game core needs. Bun's ServerWebSocket fits it as-is; the Cloudflare
 // Worker build (apps/worker) wraps a Durable Object WebSocket in the same shape.
@@ -159,8 +164,40 @@ export function createGameCore(
   }
 
   // JOIN mints identity: run the use case, attach the resolved id/host flag, subscribe, then WELCOME.
+  // WATCH: follow the room without a seat (fork extra). Subscribe to the room topic, then replay what
+  // a reconnecting player would get (lobby state, plus the running round if any).
+  const watchers = new Map<string, number>()
+  const handleWatch = (ws: GameWs): void => {
+    if (ws.data.playerId || ws.data.watcher) return
+    const room = deps.rooms.get(ws.data.roomCode)
+    if (!room) {
+      send(ws, { type: 'JOIN_REJECTED', reason: 'room_not_found' })
+      ws.close()
+      return
+    }
+    const count = watchers.get(room.code) ?? 0
+    if (count >= MAX_WATCHERS) {
+      send(ws, { type: 'JOIN_REJECTED', reason: 'watchers_full' })
+      ws.close()
+      return
+    }
+    watchers.set(room.code, count + 1)
+    ws.data.watcher = true
+    ws.subscribe(roomTopic(room.code))
+    deps.logger.info('watcher_joined', { room: room.code, watchers: count + 1 })
+    send(ws, { type: 'WATCHING', protocolVersion: PROTOCOL_VERSION, roomCode: room.code })
+    send(ws, lobbyState(room))
+    for (const m of manager.resumeMessages(room.code)) send(ws, m)
+  }
+
+  // A closed room's watchers (if any) are told, so their screen doesn't freeze on the last frame.
+  const closeForWatchers = (code: string): void => {
+    if (!watchers.has(code)) return
+    publish(roomTopic(code), JSON.stringify({ type: 'ERROR', reason: 'room_closed' }))
+  }
+
   const handleJoin = (ws: GameWs, msg: Extract<ClientMsg, { type: 'JOIN' }>): void => {
-    if (ws.data.playerId) return // already joined on this socket
+    if (ws.data.playerId || ws.data.watcher) return // already joined (or watching) on this socket
     const result = deps.joinRoom.execute({
       code: ws.data.roomCode,
       name: msg.name,
@@ -207,7 +244,7 @@ export function createGameCore(
   // REJOIN reclaims an existing seat after a socket drop: re-attach the id, mark it connected, then
   // replay the current session state to this one socket so its screen is restored.
   const handleRejoin = (ws: GameWs, msg: Extract<ClientMsg, { type: 'REJOIN' }>): void => {
-    if (ws.data.playerId) return
+    if (ws.data.playerId || ws.data.watcher) return
     const room = deps.rooms.get(ws.data.roomCode)
     const player = room?.get(msg.playerId)
     // A wrong token is answered like a gone seat: ids are public, so only the seat's own client (which
@@ -421,6 +458,9 @@ export function createGameCore(
       case 'REJOIN':
         handleRejoin(ws, msg)
         break
+      case 'WATCH':
+        handleWatch(ws)
+        break
       case 'SET_READY':
         handleSetReady(ws, msg)
         break
@@ -465,6 +505,12 @@ export function createGameCore(
   }
 
   const teardown = (ws: GameWs): void => {
+    if (ws.data.watcher) {
+      const left = (watchers.get(ws.data.roomCode) ?? 1) - 1
+      if (left > 0) watchers.set(ws.data.roomCode, left)
+      else watchers.delete(ws.data.roomCode)
+      return
+    }
     // Only the socket that currently holds the seat may release it (see seatSockets).
     if (!ws.data.playerId || seatSockets.get(ws.data.playerId) !== ws) return
     seatSockets.delete(ws.data.playerId)
@@ -479,6 +525,7 @@ export function createGameCore(
       if (!room.hasConnectedPlayers) {
         manager.stop(room.code)
         deps.rooms.remove(room.code)
+        closeForWatchers(room.code)
         deps.logger.info('room_closed', { room: room.code, reason: 'all_disconnected' })
         return
       }
@@ -494,6 +541,7 @@ export function createGameCore(
     if (room.isEmpty) {
       manager.stop(room.code)
       deps.rooms.remove(room.code)
+      closeForWatchers(room.code)
       deps.logger.info('room_closed', { room: room.code, reason: 'empty' })
       return
     }

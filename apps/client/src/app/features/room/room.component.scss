@@ -80,6 +80,11 @@
   .reconnect {
     color: var(--c-red);
   }
+  // Watch-only screen (fork extra): a steady label instead of any controls.
+  .watching-tag {
+    color: var(--c-amber);
+    white-space: nowrap;
+  }
   // Same compact size as the SND button next to it; turns red once armed ("SURE?").
   .skip {
     padding: 0.35rem 0.5rem;

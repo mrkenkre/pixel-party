@@ -125,3 +125,13 @@ li {
     }
   }
 }
+
+// Watch-only screen on a TV or laptop (fork extra): the live board is what the room reads from the
+// sofa, so it gets wider and one type step bigger.
+@media (min-width: 1000px) {
+  :host-context(.watching) .live-board {
+    width: 18rem;
+    --fs-xs: 12px;
+    --fs-sm: 16px;
+  }
+}

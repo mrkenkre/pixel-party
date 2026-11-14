@@ -26,10 +26,12 @@
     "roomNotFound": "Room {{code}} not found",
     "kicked": "You were removed from the room by the host",
     "tagline": "{{n}} mini-games · one room · endless bragging rights",
-    "or": "or join a friend"
+    "or": "or join a friend",
+    "watch": "Watch"
   },
   "room": {
     "code": "ROOM",
+    "watching": "📺 WATCHING",
     "reconnecting": "Reconnecting...",
     "connecting": "Connecting...",
     "lobby": {
@@ -54,6 +56,8 @@
       "handicap": "Catch-up (comebacks)",
       "roomCode": "Room code",
       "share": "Share the code or the link",
+      "tvHint": "TV or laptop? Enter {{code}} on the home screen and press WATCH",
+      "watchingHint": "Watching: the game shows up here when the host starts",
       "playersCount": "{{n}} players",
       "readyCount": "{{n}}/{{total}} ready",
       "selectedCount": "{{n}}/{{total}} selected",
@@ -224,7 +228,8 @@
     "session_in_progress": "Session already in progress",
     "name_taken": "That name is taken",
     "no_games_fit": "No picked game fits this many players",
-    "invalid_name": "Pick a name with some letters in it"
+    "invalid_name": "Pick a name with some letters in it",
+    "watchers_full": "This room already has the most screens watching"
   },
   "catalog": {
     "axis": {

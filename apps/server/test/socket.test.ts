@@ -204,3 +204,45 @@ describe('hostile messages never take the server down', () => {
     long.ws.close()
   })
 })
+
+// Fork extra (party-20): a TV/laptop follows the room without a seat.
+describe('WATCH (spectator screen)', () => {
+  test('gets the room broadcasts without taking a seat', async () => {
+    const code = await createRoom()
+    const { client: host } = await join(code, 'Host')
+    const tv = await connect(code)
+    const lobby = tv.next('LOBBY_STATE')
+    tv.ws.send(JSON.stringify({ type: 'WATCH' }))
+    const watching = await tv.next('WATCHING')
+    expect(watching).toMatchObject({ type: 'WATCHING', roomCode: code })
+    const state = (await lobby) as Extract<ServerMsg, { type: 'LOBBY_STATE' }>
+    expect(state.players.map((p) => p.name)).toEqual(['Host'])
+
+    // A player joining later is broadcast to the watcher; the watcher is never listed.
+    const roster = tv.next('LOBBY_STATE')
+    const { client: guest } = await join(code, 'Guest')
+    const after = (await roster) as Extract<ServerMsg, { type: 'LOBBY_STATE' }>
+    expect(after.players.map((p) => p.name).sort()).toEqual(['Guest', 'Host'])
+
+    // Intents from a watcher do nothing (no seat): it can't ready up or start the session.
+    tv.ws.send(JSON.stringify({ type: 'START_SESSION' }))
+    tv.ws.send(JSON.stringify({ type: 'SET_READY', ready: true }))
+    tv.ws.send(JSON.stringify({ type: 'JOIN', name: 'Sneaky', color: '#ff3e7f', avatar: 'cat' }))
+    await Bun.sleep(150)
+    expect(tv.msgs.some((m) => m.type === 'WELCOME' || m.type === 'ROUND_INTRO')).toBe(false)
+
+    // The round reaches the watcher too.
+    const intro = tv.next('ROUND_INTRO')
+    host.ws.send(JSON.stringify({ type: 'HOST_CONFIG', minigameIds: ['button-masher'], rounds: 1 }))
+    host.ws.send(JSON.stringify({ type: 'START_SESSION' }))
+    expect(await intro).toMatchObject({ type: 'ROUND_INTRO', minigameId: 'button-masher' })
+
+    // Everyone leaves: the watcher hears the room is gone.
+    const closedMsg = tv.next('ERROR')
+    host.ws.close()
+    guest.ws.close()
+    expect(await closedMsg).toMatchObject({ reason: 'room_closed' })
+    tv.ws.close()
+    expect(await healthy()).toBe(true)
+  })
+})

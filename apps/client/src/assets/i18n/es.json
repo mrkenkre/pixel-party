@@ -26,10 +26,12 @@
     "roomNotFound": "La sala {{code}} no existe. ¿Seguro que es esa?",
     "kicked": "El anfitrión te ha echado de la sala",
     "tagline": "{{n}} minijuegos · una sala · piques para rato",
-    "or": "o métete en la de un colega"
+    "or": "o métete en la de un colega",
+    "watch": "Mirar"
   },
   "room": {
     "code": "SALA",
+    "watching": "📺 MIRANDO",
     "reconnecting": "Reconectando… no te vayas",
     "connecting": "Conectando…",
     "lobby": {
@@ -54,6 +56,8 @@
       "handicap": "Ayudita para remontar",
       "roomCode": "Código de sala",
       "share": "Pásales el código o el enlace",
+      "tvHint": "¿Tele u ordenador? Mete {{code}} en la pantalla de inicio y pulsa MIRAR",
+      "watchingHint": "Mirando: la partida saldrá aquí cuando el anfitrión empiece",
       "playersCount": "{{n}} jugadores",
       "readyCount": "{{n}}/{{total}} listos",
       "selectedCount": "{{n}}/{{total}} elegidos",
@@ -227,7 +231,8 @@
     "session_in_progress": "La partida ya ha empezado",
     "name_taken": "Ese nombre ya lo tiene otro",
     "no_games_fit": "Ningún juego elegido vale para tantos jugadores",
-    "invalid_name": "Ponte un nombre con alguna letra, anda"
+    "invalid_name": "Ponte un nombre con alguna letra, anda",
+    "watchers_full": "Esta sala ya tiene demasiadas pantallas mirando"
   },
   "catalog": {
     "axis": {

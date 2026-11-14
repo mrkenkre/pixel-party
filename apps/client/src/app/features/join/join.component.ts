@@ -89,6 +89,9 @@ import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
             <button type="button" class="arcade-btn" (click)="joinRoom()">
               {{ 'join.join' | transloco }}
             </button>
+            <button type="button" class="arcade-btn" (click)="joinRoom(true)">
+              {{ 'join.watch' | transloco }}
+            </button>
           </div>
 
           @if (message()) {
@@ -212,7 +215,8 @@ export class JoinComponent {
     }
   }
 
-  async joinRoom(): Promise<void> {
+  // watch: open the room as a watch-only screen (a TV/laptop following the game, no seat).
+  async joinRoom(watch = false): Promise<void> {
     const code = this.code.trim().toUpperCase()
     if (!code) return
     try {
@@ -223,7 +227,8 @@ export class JoinComponent {
         this.message.set(this.transloco.translate('join.roomNotFound', { code }))
         return
       }
-      this.enter(code)
+      if (watch) this.router.navigate(['/room', code], { queryParams: { watch: 1 } })
+      else this.enter(code)
     } catch {
       this.message.set(this.transloco.translate('join.cantReach'))
     }
