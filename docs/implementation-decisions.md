@@ -1132,7 +1132,7 @@ misses — each would be speculative or gated, and the project rule is "nothing 
   `awardTableFor` never picks the big table); delete `BIG_ROOM_GAMES`, `BIG_ROOM_AWARD_TABLE` and
   `awardTableFor` to remove the code too.
 
-### D41 — Cloudflare Workers build (`cf-workers` branch, fork) — DONE (deploy pending)
+### D41 — Cloudflare Workers build (`cf-workers` branch, fork) — DONE
 
 - **Date**: 2026-11-14. **Context**: the fork's owner wanted a permanent party link that doesn't depend
   on a home server or a temporary tunnel. A deliberate exception, on a fork branch, to "LAN only"

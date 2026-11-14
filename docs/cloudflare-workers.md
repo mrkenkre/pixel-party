@@ -53,6 +53,15 @@ Incoming WebSocket messages count 20 to 1; outgoing ones are free.
 - When a daily limit is reached, Cloudflare answers with errors until the next day; the free plan
   never charges.
 
+## Measured on Cloudflare (2026-11-14, from a home connection near Boston)
+
+- 20 players (19 bots + a real phone-size browser), 7 minutes, 6 rounds: no disconnects, no errors,
+  no snapshot gap over 1 s (longest 0.42 s).
+- In-game round trip p50 23 ms, p95 44 ms, max 123 ms (the same Pi through a Cloudflare quick tunnel:
+  ~33 ms typical, 1.25 s worst). Extra delay against the server's tick clock: p95 15 ms.
+- Game loop at 50.0 ms per tick (target 50). Phone-size browser ~190 fps.
+- Rejoin after a drop and the page-reload race behave as on the Bun server.
+
 ## Measured (local `wrangler dev`, 2026-11-14)
 
 - 20 players (19 bots + a real phone-size browser) for 4 minutes: everyone joined, no disconnects, no
