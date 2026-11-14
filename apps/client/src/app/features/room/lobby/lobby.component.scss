@@ -477,6 +477,9 @@
     }
   }
   .handicap {
+    // The hidden checkbox stays inside its label: unanchored, it sat far below the panel on narrow screens and
+    // focusing it (a tap on the label) scrolled the whole room out of view.
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.45rem;
@@ -484,6 +487,10 @@
     --tick-box-on: var(--c-cyan);
     input {
       position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
       opacity: 0;
       pointer-events: none;
     }
