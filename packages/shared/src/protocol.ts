@@ -99,6 +99,10 @@ export type ClientMsg =
   // previously minted playerId plus the secret `token` its WELCOME carried (player ids are public: every
   // LOBBY_STATE lists them); the server re-attaches the seat and replays the current session state.
   | { type: 'REJOIN'; playerId: string; token: string }
+  // Fork extra (party-20): follow the room without a seat — a TV or laptop showing the game to the
+  // room. A watcher gets every room broadcast but is not a player: no seat, no score, not counted
+  // toward the room's size, no intents. Answered with WATCHING (or JOIN_REJECTED).
+  | { type: 'WATCH' }
   | { type: 'SET_READY'; ready: boolean }
   // Host-only: configure the session (which games, how many rounds, catch-up on/off). Ignored from
   // non-hosts. `handicap` omitted = leave the current setting unchanged.
@@ -136,8 +140,12 @@ export type JoinRejectReason =
   | 'name_taken'
   // Nothing printable left after cleanName().
   | 'invalid_name'
+  // WATCH: the room already has the most watchers it allows.
+  | 'watchers_full'
 
 export type ServerMsg =
+  // Fork extra (party-20): a WATCH was accepted; room broadcasts follow (LOBBY_STATE first).
+  | { type: 'WATCHING'; protocolVersion: number; roomCode: string }
   // First frame after upgrade: server-resolved identity + protocol version for the refresh check.
   | {
       type: 'WELCOME'

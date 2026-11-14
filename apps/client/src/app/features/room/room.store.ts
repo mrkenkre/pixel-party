@@ -110,6 +110,9 @@ export class RoomStore {
   readonly hostId = signal('')
   readonly selfId = signal('')
   readonly isHost = signal(false)
+  // A watch-only screen (fork extra, `?watch=1`): no seat, so no controls; games show their
+  // spectator view and the live board.
+  readonly watching = signal(false)
   readonly reconnecting = signal(false)
   readonly message = signal('')
   // A short, neutral heads-up for everyone (e.g. "the host skipped this game"); clears itself.
@@ -237,17 +240,23 @@ export class RoomStore {
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────────────────────────
-  connect(code: string, identity: Identity): void {
+  connect(code: string, identity: Identity, watch = false): void {
     this.code.set(code)
     this.identity = identity
+    this.watching.set(watch)
     this.audio.ensureMusic()
 
     // A seat persisted from an earlier connection lets a page reload / socket drop rejoin in place.
-    const seat = this.storedSeat()
+    const seat = watch ? null : this.storedSeat()
     if (seat) this.net.restoreIdentity(seat.id, seat.token)
+    if (watch) this.net.resetIdentity()
 
     this.net.connected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((up) => {
       if (!up) return
+      if (watch) {
+        this.net.send({ type: 'WATCH' })
+        return
+      }
       // With a known id this is a reconnect → reclaim the seat; otherwise it is a first-time join.
       const { playerId, rejoinToken } = this.net
       if (playerId && rejoinToken) this.net.send({ type: 'REJOIN', playerId, token: rejoinToken })
@@ -287,7 +296,7 @@ export class RoomStore {
         this.players.set(msg.players)
         this.syncRoster()
         this.hostId.set(msg.hostId)
-        this.isHost.set(msg.hostId === this.selfId())
+        this.isHost.set(!this.watching() && msg.hostId === this.selfId())
         this.selectedGameIds.set(msg.minigameIds)
         this.rounds.set(msg.rounds)
         this.usesTeams.set(msg.usesTeams)

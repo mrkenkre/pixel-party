@@ -27,6 +27,7 @@ const VALIDATORS = {
     isStr(m.avatar) &&
     (m.touch === undefined || isBool(m.touch)),
   REJOIN: (m) => isStr(m.playerId) && isStr(m.token),
+  WATCH: () => true,
   SET_READY: (m) => isBool(m.ready),
   HOST_CONFIG: (m) =>
     isStrArray(m.minigameIds) &&

@@ -1147,3 +1147,26 @@ misses — each would be speculative or gated, and the project rule is "nothing 
     `INTRO_SECONDS` / `ENGLISH_ONLY` as wrangler vars; 25 s keepalive frame; unused rooms dropped after 60 s.
   - Details, deploy steps and the free-plan budget: [`cloudflare-workers.md`](cloudflare-workers.md).
 - **Revert**: delete `apps/worker`; `createGameCore` can stay (it is the old `startGameServer` body).
+
+### D42 — Watch-only screens (fork extra, `party-20`) — DONE
+
+- **Date**: 2026-11-14. **Context**: at a party, a TV or laptop showing the game to the whole room.
+  Before this, every connection was a player: it took one of the seats, sat in the lobby and rankings,
+  and got the "your board" view.
+- **What**:
+  - Protocol: client `WATCH`, server `WATCHING` (+ `JOIN_REJECTED` reason `watchers_full`). A watcher
+    socket subscribes to the room topic and gets every broadcast, then a replay of the lobby state and
+    the running round (the same `resumeMessages` a REJOIN gets). It has no seat: not counted toward
+    the room size, never ranked, not on the leaderboard; every other intent from it is ignored
+    (the handlers already require a seat). At most `MAX_WATCHERS` (10) per room. When the room closes
+    its watchers get `ERROR room_closed`.
+  - Client: `/room/CODE?watch=1`, or the home screen's **Watch** button next to Join (type the code on
+    the TV). `RoomStore.watching` hides the lobby's ready/host controls and shows a "WATCHING" tag;
+    the Phaser scenes see no self id, so they show their existing spectator views (late-joiner and
+    duel-watch paths, D28). On a screen 1000 px and wider the live board grows a size. The lobby tells
+    players how to add a TV.
+  - Shared-arena games (races, Snake Arena, Pixel Rain, Freeze Doll, Tug of War, duels) look best on
+    a TV; games with a private board per player (Tetris, Sudoku, quizzes) show their spectator line
+    plus the live board.
+  - Test: `apps/server/test/socket.test.ts` → "WATCH (spectator screen)".
+- **Revert**: remove the `WATCH` case in `createGameCore` and the Watch button; the rest is inert.

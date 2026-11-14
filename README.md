@@ -18,6 +18,10 @@
 >   link: one Durable Object per room runs the unchanged game core. See
 >   [`docs/cloudflare-workers.md`](docs/cloudflare-workers.md).
 >
+> Also on this fork: a **Watch** mode for a TV or laptop that shows the game to the room without taking
+> a seat (type the room code on the home screen and press **Watch**; decision D42), and a
+> **Leaderboard** link on hosts that keep one.
+>
 > Everything else is upstream Pixel Party v1.3.0. For the original project, its issues and releases, see
 > [wansors/pixel-party](https://github.com/wansors/pixel-party). The description below is the original README.
 

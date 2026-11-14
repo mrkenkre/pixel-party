@@ -94,6 +94,8 @@ export class GameSocketService {
       if (msg.type === 'WELCOME') {
         this._playerId = msg.playerId
         this._rejoinToken = msg.rejoinToken
+      }
+      if (msg.type === 'WELCOME' || msg.type === 'WATCHING') {
         if (msg.protocolVersion !== PROTOCOL_VERSION) {
           this.protocolMismatch = true
           console.warn(
