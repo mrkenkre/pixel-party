@@ -14,6 +14,9 @@
 > - A **20-place award table** for rooms above 12 (places 12-19 still score a point, only last scores 0).
 >   Rooms of up to 12 score exactly as in the original.
 > - Tests for the above: `apps/server/src/domain/services/bigRoom.test.ts`.
+> - **Branch `cf-workers`**: the same game on **Cloudflare Workers** (free plan) for a permanent public
+>   link: one Durable Object per room runs the unchanged game core. See
+>   [`docs/cloudflare-workers.md`](docs/cloudflare-workers.md).
 >
 > Everything else is upstream Pixel Party v1.3.0. For the original project, its issues and releases, see
 > [wansors/pixel-party](https://github.com/wansors/pixel-party). The description below is the original README.
@@ -53,6 +56,7 @@ session-wide ranking.
 | [`docs/backlog.md`](docs/backlog.md) | Phased roadmap: minimal MVP first, then incremental epics. |
 | [`docs/implementation-decisions.md`](docs/implementation-decisions.md) | Decision log: what was built/deferred and why. |
 | [`docs/playtest-bugs.md`](docs/playtest-bugs.md) | Bugs found in LAN playtests and their status. |
+| [`docs/cloudflare-workers.md`](docs/cloudflare-workers.md) | Running on Cloudflare Workers (`cf-workers` branch of this fork): how it works, deploy, free-plan budget. |
 | [`docs/promo/`](docs/promo/README.md) | ~42 s promo video (HTML timeline + MP4 renderer), cut to the game's soundtrack. |
 
 ## Concept in one line

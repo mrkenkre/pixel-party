@@ -10,6 +10,9 @@ for a session-wide ranking. See [`README.md`](README.md).
 This is the reason the project is permanently stateless/anonymous/single-instance by design (no DB, no
 social/public-matchmaking phase, no multi-instance scaling — see `docs/implementation-decisions.md`
 D15–D17). Don't propose features that assume an internet-facing, multi-tenant, or persistent deployment.
+(Fork exception: the `cf-workers` branch adds `apps/worker`, a Cloudflare Workers build that runs the same
+`createGameCore` in one Durable Object per room — `docs/cloudflare-workers.md`, D41. Keep game logic in
+`apps/server`; `apps/worker` stays a thin transport.)
 
 ## Current phase
 

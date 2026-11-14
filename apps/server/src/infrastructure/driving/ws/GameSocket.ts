@@ -1,6 +1,5 @@
 import type { ClientMsg, PlayerDto, ServerMsg } from '@pp/shared'
 import { MINIGAMES_BY_ID, PROTOCOL_VERSION, TEAM_IDS } from '@pp/shared'
-import type { ServerWebSocket } from 'bun'
 import type { Clock } from '../../../application/ports/Clock'
 import type { LiveRoomRegistry } from '../../../application/ports/LiveRoomRegistry'
 import type { Publisher } from '../../../application/ports/Publisher'
@@ -30,6 +29,15 @@ export interface SocketData {
   connId: string
   playerId?: string
   isHost: boolean
+}
+
+// The socket surface the game core needs. Bun's ServerWebSocket fits it as-is; the Cloudflare
+// Worker build (apps/worker) wraps a Durable Object WebSocket in the same shape.
+export interface GameWs {
+  data: SocketData
+  send(msg: string): unknown
+  close(): void
+  subscribe(topic: string): void
 }
 
 export const roomTopic = (code: string): string => `room:${code}`
@@ -95,17 +103,21 @@ function lobbyState(room: Room): LobbyStateMsg {
   }
 }
 
-export function startGameServer(deps: GameSocketDeps) {
-  // Assigned right after Bun.serve returns (synchronously, before any socket message can arrive), so
-  // the handlers below can close over it. The publisher fans engine output over the room topic.
+// The transport-neutral game core: every intent handler, the session manager, the simulation loop and
+// the idle sweeper. `publish(topic, data)` fans a frame out to the sockets subscribed to a topic (Bun's
+// server.publish, or the Durable Object's own fan-out on Cloudflare).
+export function createGameCore(
+  deps: GameSocketDeps,
+  publish: (topic: string, data: string) => void,
+) {
   let manager: SessionManager
 
-  const send = (ws: ServerWebSocket<SocketData>, msg: ServerMsg): void => {
+  const send = (ws: GameWs, msg: ServerMsg): void => {
     ws.send(JSON.stringify(msg))
   }
 
   const broadcastLobby = (room: Room): void => {
-    server.publish(roomTopic(room.code), JSON.stringify(lobbyState(room)))
+    publish(roomTopic(room.code), JSON.stringify(lobbyState(room)))
   }
 
   // Counters plus live gauges the counters can't hold (active rooms, running sessions).
@@ -135,8 +147,8 @@ export function startGameServer(deps: GameSocketDeps) {
   // The socket currently holding each seat. A page reload opens the new socket (and REJOINs) before
   // the old socket's close has been processed; without this, that late close would drop the seat the
   // new socket just reclaimed (lobby) or mark it offline and move the host role away (mid-session).
-  const seatSockets = new Map<string, ServerWebSocket<SocketData>>()
-  const claimSeat = (ws: ServerWebSocket<SocketData>, playerId: string): void => {
+  const seatSockets = new Map<string, GameWs>()
+  const claimSeat = (ws: GameWs, playerId: string): void => {
     const prev = seatSockets.get(playerId)
     seatSockets.set(playerId, ws)
     if (prev && prev !== ws) {
@@ -147,10 +159,7 @@ export function startGameServer(deps: GameSocketDeps) {
   }
 
   // JOIN mints identity: run the use case, attach the resolved id/host flag, subscribe, then WELCOME.
-  const handleJoin = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'JOIN' }>,
-  ): void => {
+  const handleJoin = (ws: GameWs, msg: Extract<ClientMsg, { type: 'JOIN' }>): void => {
     if (ws.data.playerId) return // already joined on this socket
     const result = deps.joinRoom.execute({
       code: ws.data.roomCode,
@@ -197,10 +206,7 @@ export function startGameServer(deps: GameSocketDeps) {
 
   // REJOIN reclaims an existing seat after a socket drop: re-attach the id, mark it connected, then
   // replay the current session state to this one socket so its screen is restored.
-  const handleRejoin = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'REJOIN' }>,
-  ): void => {
+  const handleRejoin = (ws: GameWs, msg: Extract<ClientMsg, { type: 'REJOIN' }>): void => {
     if (ws.data.playerId) return
     const room = deps.rooms.get(ws.data.roomCode)
     const player = room?.get(msg.playerId)
@@ -231,10 +237,7 @@ export function startGameServer(deps: GameSocketDeps) {
     for (const m of manager.resumeMessages(room.code)) send(ws, m)
   }
 
-  const handleSetReady = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'SET_READY' }>,
-  ): void => {
+  const handleSetReady = (ws: GameWs, msg: Extract<ClientMsg, { type: 'SET_READY' }>): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     const player = ws.data.playerId ? room?.get(ws.data.playerId) : undefined
     if (!room || !player) return
@@ -242,10 +245,7 @@ export function startGameServer(deps: GameSocketDeps) {
     broadcastLobby(room)
   }
 
-  const handleHostConfig = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'HOST_CONFIG' }>,
-  ): void => {
+  const handleHostConfig = (ws: GameWs, msg: Extract<ClientMsg, { type: 'HOST_CONFIG' }>): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'HOST_CONFIG', ok: false, reason: 'not_host' })
@@ -261,10 +261,7 @@ export function startGameServer(deps: GameSocketDeps) {
     broadcastLobby(room)
   }
 
-  const handleSetTeam = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'SET_TEAM' }>,
-  ): void => {
+  const handleSetTeam = (ws: GameWs, msg: Extract<ClientMsg, { type: 'SET_TEAM' }>): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'SET_TEAM', ok: false, reason: 'not_host' })
@@ -279,7 +276,7 @@ export function startGameServer(deps: GameSocketDeps) {
     broadcastLobby(room)
   }
 
-  const handleShuffleTeams = (ws: ServerWebSocket<SocketData>): void => {
+  const handleShuffleTeams = (ws: GameWs): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'SHUFFLE_TEAMS', ok: false, reason: 'not_host' })
@@ -294,7 +291,7 @@ export function startGameServer(deps: GameSocketDeps) {
     broadcastLobby(room)
   }
 
-  const handleStartSession = (ws: ServerWebSocket<SocketData>): void => {
+  const handleStartSession = (ws: GameWs): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'START_SESSION', ok: false, reason: 'not_host' })
@@ -326,7 +323,7 @@ export function startGameServer(deps: GameSocketDeps) {
   // handicap so the host can re-pick or reuse the line-up and start again via the normal START_SESSION
   // flow. The finished engine is already gone (SessionManager drops it once isFinished), so a fresh
   // START_SESSION naturally starts scoreless — the only reset needed here is the room's phase.
-  const handlePlayAgain = (ws: ServerWebSocket<SocketData>): void => {
+  const handlePlayAgain = (ws: GameWs): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'PLAY_AGAIN', ok: false, reason: 'not_host' })
@@ -344,7 +341,7 @@ export function startGameServer(deps: GameSocketDeps) {
   }
 
   // Host-only: skip the round in progress (a misbehaving game shouldn't hold the whole room).
-  const handleSkipRound = (ws: ServerWebSocket<SocketData>): void => {
+  const handleSkipRound = (ws: GameWs): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'SKIP_ROUND', ok: false, reason: 'not_host' })
@@ -360,7 +357,7 @@ export function startGameServer(deps: GameSocketDeps) {
   }
 
   const handleTransferHost = (
-    ws: ServerWebSocket<SocketData>,
+    ws: GameWs,
     msg: Extract<ClientMsg, { type: 'TRANSFER_HOST' }>,
   ): void => {
     const room = deps.rooms.get(ws.data.roomCode)
@@ -381,10 +378,7 @@ export function startGameServer(deps: GameSocketDeps) {
     broadcastLobby(room)
   }
 
-  const handleKick = (
-    ws: ServerWebSocket<SocketData>,
-    msg: Extract<ClientMsg, { type: 'KICK_PLAYER' }>,
-  ): void => {
+  const handleKick = (ws: GameWs, msg: Extract<ClientMsg, { type: 'KICK_PLAYER' }>): void => {
     const room = deps.rooms.get(ws.data.roomCode)
     if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
       send(ws, { type: 'ACK', intent: 'KICK_PLAYER', ok: false, reason: 'not_host' })
@@ -397,10 +391,7 @@ export function startGameServer(deps: GameSocketDeps) {
     // Notify the kicked seat over its own topic (it may still be listening), then drop it from the
     // roster. Their client returns to the entry screen; if they re-enter the code they can rejoin —
     // this is a "remove now", not a ban (no accounts/ban list in Phase 1).
-    server.publish(
-      playerTopic(msg.playerId),
-      JSON.stringify({ type: 'KICKED' } satisfies ServerMsg),
-    )
+    publish(playerTopic(msg.playerId), JSON.stringify({ type: 'KICKED' } satisfies ServerMsg))
     room.remove(msg.playerId)
     deps.metrics.inc('kicks')
     deps.logger.info('player_kicked', {
@@ -412,14 +403,14 @@ export function startGameServer(deps: GameSocketDeps) {
   }
 
   const handleMinigameInput = (
-    ws: ServerWebSocket<SocketData>,
+    ws: GameWs,
     msg: Extract<ClientMsg, { type: 'MINIGAME_INPUT' }>,
   ): void => {
     if (!ws.data.playerId) return
     manager.input(ws.data.roomCode, ws.data.playerId, msg.input)
   }
 
-  const dispatch = (ws: ServerWebSocket<SocketData>, msg: ClientMsg): void => {
+  const dispatch = (ws: GameWs, msg: ClientMsg): void => {
     // Any inbound intent keeps the room alive against the idle sweeper.
     deps.rooms.get(ws.data.roomCode)?.touch(deps.clock.now())
     deps.metrics.inc('messages')
@@ -473,7 +464,7 @@ export function startGameServer(deps: GameSocketDeps) {
     }
   }
 
-  const teardown = (ws: ServerWebSocket<SocketData>): void => {
+  const teardown = (ws: GameWs): void => {
     // Only the socket that currently holds the seat may release it (see seatSockets).
     if (!ws.data.playerId || seatSockets.get(ws.data.playerId) !== ws) return
     seatSockets.delete(ws.data.playerId)
@@ -524,7 +515,94 @@ export function startGameServer(deps: GameSocketDeps) {
     }
   }
 
-  const server = Bun.serve<SocketData, never>({
+  // One inbound frame: parse, validate, dispatch (a bad frame is answered, never thrown).
+  const message = (ws: GameWs, raw: string | { toString(): string }): void => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(typeof raw === 'string' ? raw : raw.toString())
+    } catch {
+      deps.metrics.inc('errors')
+      send(ws, { type: 'ERROR', reason: 'malformed message' })
+      return
+    }
+    if (!isValidClientMsg(parsed)) {
+      deps.metrics.inc('errors')
+      send(ws, { type: 'ERROR', reason: 'malformed message' })
+      return
+    }
+    const msg = parsed
+    guard(`message:${msg.type}`, () => dispatch(ws, msg))
+  }
+
+  const close = (ws: GameWs): void => {
+    guard('close', () => teardown(ws))
+  }
+
+  const publisher: Publisher = {
+    toRoom(code, msg) {
+      publish(roomTopic(code), JSON.stringify(msg))
+    },
+  }
+  manager = new SessionManager(
+    publisher,
+    deps.clock,
+    deps.random,
+    deps.sessionConfig,
+    (room, where, err) => {
+      deps.metrics.inc('errors')
+      deps.logger.error('session_failed', {
+        room,
+        where,
+        error: String(err),
+        stack: (err as Error)?.stack,
+      })
+    },
+  )
+  const loop = buildSimulationLoop(manager, deps.sessionConfig.tickHz)
+
+  // Idle-room reaper: sweep on a coarse interval (min of the idle window and 60 s) so abandoned lobbies
+  // and never-joined rooms don't leak in the in-memory store. Notifies any lingering listener, then
+  // drops the room.
+  const idleMs = deps.roomIdleTimeoutSec * 1000
+  const sweepTimer = setInterval(
+    () =>
+      guard('sweep', () => {
+        const reaped = reapIdleRooms({
+          rooms: deps.rooms,
+          manager,
+          now: deps.clock.now(),
+          idleMs,
+          onReap: (code) => {
+            publish(roomTopic(code), JSON.stringify({ type: 'ERROR', reason: 'room_closed' }))
+            deps.logger.info('room_reaped', { room: code })
+          },
+        })
+        if (reaped.length) deps.metrics.inc('rooms_reaped', reaped.length)
+      }),
+    Math.min(idleMs, 60_000),
+  )
+
+  return {
+    message,
+    close,
+    metricsSnapshot,
+    // Exposed for a clean shutdown (tests / signal handling).
+    stop: () => {
+      loop.stop()
+      clearInterval(sweepTimer)
+    },
+  }
+}
+
+export function startGameServer(deps: GameSocketDeps) {
+  // Assigned right after Bun.serve returns (synchronously, before any engine output can be published).
+  let server: ReturnType<typeof Bun.serve<SocketData, never>>
+  const core = createGameCore(deps, (topic, data) => {
+    server.publish(topic, data)
+  })
+  const metricsSnapshot = core.metricsSnapshot
+
+  server = Bun.serve<SocketData, never>({
     port: deps.port ?? config.port,
     // Production answers a failed request with a bare 500, not Bun's debug page (stack + source).
     development: config.isDevelopment,
@@ -574,82 +652,15 @@ export function startGameServer(deps: GameSocketDeps) {
         // Nothing to do until JOIN mints identity; the client sends JOIN as its first frame.
       },
       message(ws, raw) {
-        let parsed: unknown
-        try {
-          parsed = JSON.parse(typeof raw === 'string' ? raw : raw.toString())
-        } catch {
-          deps.metrics.inc('errors')
-          send(ws, { type: 'ERROR', reason: 'malformed message' })
-          return
-        }
-        if (!isValidClientMsg(parsed)) {
-          deps.metrics.inc('errors')
-          send(ws, { type: 'ERROR', reason: 'malformed message' })
-          return
-        }
-        const msg = parsed
-        guard(`message:${msg.type}`, () => dispatch(ws, msg))
+        core.message(ws, raw)
       },
       close(ws) {
-        guard('close', () => teardown(ws))
+        core.close(ws)
       },
     },
   })
 
-  const publisher: Publisher = {
-    toRoom(code, msg) {
-      server.publish(roomTopic(code), JSON.stringify(msg))
-    },
-  }
-  manager = new SessionManager(
-    publisher,
-    deps.clock,
-    deps.random,
-    deps.sessionConfig,
-    (room, where, err) => {
-      deps.metrics.inc('errors')
-      deps.logger.error('session_failed', {
-        room,
-        where,
-        error: String(err),
-        stack: (err as Error)?.stack,
-      })
-    },
-  )
-  const loop = buildSimulationLoop(manager, deps.sessionConfig.tickHz)
-
-  // Idle-room reaper: sweep on a coarse interval (min of the idle window and 60 s) so abandoned lobbies
-  // and never-joined rooms don't leak in the in-memory store. Notifies any lingering listener, then
-  // drops the room.
-  const idleMs = deps.roomIdleTimeoutSec * 1000
-  const sweepTimer = setInterval(
-    () =>
-      guard('sweep', () => {
-        const reaped = reapIdleRooms({
-          rooms: deps.rooms,
-          manager,
-          now: deps.clock.now(),
-          idleMs,
-          onReap: (code) => {
-            server.publish(
-              roomTopic(code),
-              JSON.stringify({ type: 'ERROR', reason: 'room_closed' }),
-            )
-            deps.logger.info('room_reaped', { room: code })
-          },
-        })
-        if (reaped.length) deps.metrics.inc('rooms_reaped', reaped.length)
-      }),
-    Math.min(idleMs, 60_000),
-  )
-
-  return Object.assign(server, {
-    // Exposed for a clean shutdown (tests / signal handling).
-    stopLoop: () => {
-      loop.stop()
-      clearInterval(sweepTimer)
-    },
-  })
+  return Object.assign(server, { stopLoop: core.stop })
 }
 
 export type GameServerHandle = ReturnType<typeof startGameServer>

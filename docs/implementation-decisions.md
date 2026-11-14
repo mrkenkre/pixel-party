@@ -1131,3 +1131,19 @@ misses — each would be speculative or gated, and the project rule is "nothing 
 - **Revert**: `MAX_ROOM_PLAYERS = 12` alone restores upstream behaviour (no game can then exceed 12 and
   `awardTableFor` never picks the big table); delete `BIG_ROOM_GAMES`, `BIG_ROOM_AWARD_TABLE` and
   `awardTableFor` to remove the code too.
+
+### D41 — Cloudflare Workers build (`cf-workers` branch, fork) — DONE (deploy pending)
+
+- **Date**: 2026-11-14. **Context**: the fork's owner wanted a permanent party link that doesn't depend
+  on a home server or a temporary tunnel. A deliberate exception, on a fork branch, to "LAN only"
+  (D15–D17): still no accounts and no stored rooms; the only stored data is the opt-in leaderboard.
+- **What**:
+  - `GameSocket.ts` is split: `createGameCore(deps, publish)` holds every intent handler, the session
+    manager, the simulation loop and the idle sweeper behind a small `GameWs` socket interface (Bun's
+    `ServerWebSocket` fits it as-is); `startGameServer` is now just the `Bun.serve` front end around it.
+    No behaviour change for the Bun server (same tests pass).
+  - `apps/worker`: a Worker + `RoomDO` (one Durable Object per room, running `createGameCore`) +
+    `ScoresDO` (leaderboard). Static client via Workers assets; CSP as in `staticSite.ts`;
+    `INTRO_SECONDS` / `ENGLISH_ONLY` as wrangler vars; 25 s keepalive frame; unused rooms dropped after 60 s.
+  - Details, deploy steps and the free-plan budget: [`cloudflare-workers.md`](cloudflare-workers.md).
+- **Revert**: delete `apps/worker`; `createGameCore` can stay (it is the old `startGameServer` body).

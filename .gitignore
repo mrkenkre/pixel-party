@@ -38,3 +38,4 @@ apps/client/.angular/
 # SQLite (later-phase only)
 *.sqlite
 *.sqlite-*
+.wrangler/

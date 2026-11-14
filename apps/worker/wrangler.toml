@@ -1,0 +1,34 @@
+# Pixel Party on Cloudflare Workers (cf-workers branch). One Durable Object per room runs the same game
+# core as the Bun server (apps/server createGameCore); the Worker serves the client build as static assets.
+# Build the client first (bun run build:client), then: bunx wrangler dev | bunx wrangler deploy
+name = "pixel-party"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "../client/dist/client/browser"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# Every request reaches the Worker first: it adds the security headers (CSP) and the English-only tags.
+run_worker_first = true
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomDO"
+
+[[durable_objects.bindings]]
+name = "SCORES"
+class_name = "ScoresDO"
+
+# SQLite-backed classes are the ones the Workers Free plan allows.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomDO", "ScoresDO"]
+
+[vars]
+NODE_ENV = "production"
+# Instructions screen before each round (seconds). Upstream default is 5.
+INTRO_SECONDS = "30"
+# "true" hides the EN|ES toggle and keeps the UI in English.
+ENGLISH_ONLY = "true"
