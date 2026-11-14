@@ -32,6 +32,11 @@
   "room": {
     "code": "ROOM",
     "watching": "📺 WATCHING",
+    "home": {
+      "button": "HOME",
+      "confirm": "LEAVE?",
+      "hint": "Back to the home screen (during a game, tap twice). Re-enter the code to rejoin."
+    },
     "reconnecting": "Reconnecting...",
     "connecting": "Connecting...",
     "lobby": {

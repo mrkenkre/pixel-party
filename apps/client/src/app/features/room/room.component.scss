@@ -80,6 +80,16 @@
   .reconnect {
     color: var(--c-red);
   }
+  // Back to the home screen (fork extra); same compact size as SND, red once armed ("LEAVE?").
+  .home {
+    padding: 0.35rem 0.5rem;
+    white-space: nowrap;
+    color: var(--c-dim);
+    &.armed {
+      color: var(--c-text);
+      background: var(--c-red);
+    }
+  }
   // Watch-only screen (fork extra): a steady label instead of any controls.
   .watching-tag {
     color: var(--c-amber);
@@ -191,7 +201,8 @@ footer {
     min-height: 2.25rem;
     gap: 0.5rem;
     .pips,
-    .round-no {
+    .round-no,
+    .home .long {
       display: none;
     }
   }

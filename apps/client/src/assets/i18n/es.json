@@ -32,6 +32,11 @@
   "room": {
     "code": "SALA",
     "watching": "📺 MIRANDO",
+    "home": {
+      "button": "INICIO",
+      "confirm": "¿SALIR?",
+      "hint": "Vuelve a la pantalla de inicio (en plena partida, pulsa dos veces). Mete el código otra vez para volver."
+    },
     "reconnecting": "Reconectando… no te vayas",
     "connecting": "Conectando…",
     "lobby": {

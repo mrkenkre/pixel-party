@@ -54,8 +54,29 @@ export class RoomComponent implements OnInit {
   readonly skipArmed = signal(false)
   private disarmTimer?: ReturnType<typeof setTimeout>
 
+  // Fork extra: back to the home screen. While a game is on (intro or round) the first click arms it
+  // ("LEAVE?") and a second one within 3 s leaves, so a stray tap can't pull a player out mid-round.
+  // Leaving closes the socket; mid-session the seat (and score) stays, so re-entering the code rejoins.
+  readonly leaveArmed = signal(false)
+  private leaveTimer?: ReturnType<typeof setTimeout>
+
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.disarmTimer))
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.disarmTimer)
+      clearTimeout(this.leaveTimer)
+    })
+  }
+
+  onHome(button: HTMLElement): void {
+    button.blur()
+    const live = this.store.view() === 'intro' || this.store.view() === 'round'
+    if (live && !this.store.watching() && !this.leaveArmed()) {
+      this.leaveArmed.set(true)
+      clearTimeout(this.leaveTimer)
+      this.leaveTimer = setTimeout(() => this.leaveArmed.set(false), 3000)
+      return
+    }
+    this.router.navigate(['/'])
   }
 
   onSkip(button: HTMLElement): void {
