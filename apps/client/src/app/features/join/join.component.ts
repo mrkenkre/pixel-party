@@ -9,6 +9,7 @@ import { AudioService } from '../../core/audio/audio.service'
 import { appUrl } from '../../core/net/app-url'
 import { AudioControlsComponent } from '../../shared/audio-controls.component'
 import { LanguageToggleComponent } from '../../shared/language-toggle.component'
+import { LeaderboardLinkComponent } from '../../shared/leaderboard-link.component'
 import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
 
 // Entry point: pick a name + pixel avatar + color, then create a fresh room or enter an existing code.
@@ -20,6 +21,7 @@ import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
     PixelAvatarComponent,
     AudioControlsComponent,
     LanguageToggleComponent,
+    LeaderboardLinkComponent,
     TranslocoPipe,
   ],
   template: `
@@ -92,6 +94,7 @@ import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
           @if (message()) {
             <p class="msg">{{ message() }}</p>
           }
+          <app-leaderboard-link />
         </div>
       </div>
       <footer>
