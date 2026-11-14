@@ -1,7 +1,8 @@
 {
   "common": {
     "copyLink": "Copy link",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "leaderboard": "Leaderboard"
   },
   "lang": {
     "en": "EN",

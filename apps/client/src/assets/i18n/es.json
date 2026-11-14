@@ -1,7 +1,8 @@
 {
   "common": {
     "copyLink": "Copiar enlace",
-    "copied": "¡Copiado!"
+    "copied": "¡Copiado!",
+    "leaderboard": "Clasificación"
   },
   "lang": {
     "en": "EN",

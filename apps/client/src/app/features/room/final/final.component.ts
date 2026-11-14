@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { PLAYER_COLORS, type ScoreEntryDto } from '@pp/shared'
 import { linesOf, pickLine } from '../../../../game/quips'
+import { LeaderboardLinkComponent } from '../../../shared/leaderboard-link.component'
 import { PixelAvatarComponent } from '../../../shared/pixel-avatar.component'
 import { PointsPipe } from '../../../shared/points.pipe'
 import { SkillRadarComponent } from '../../../shared/skill-radar.component'
@@ -20,7 +21,13 @@ interface Confetto {
 // The host can send the room back to the lobby for another session.
 @Component({
   selector: 'app-final',
-  imports: [PixelAvatarComponent, SkillRadarComponent, TranslocoPipe, PointsPipe],
+  imports: [
+    PixelAvatarComponent,
+    SkillRadarComponent,
+    TranslocoPipe,
+    PointsPipe,
+    LeaderboardLinkComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './final.component.html',
   styleUrl: './final.component.scss',
