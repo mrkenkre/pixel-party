@@ -148,6 +148,8 @@ export class RoomStore {
   // Consecutive round wins per player, used to bump a winner's callout to the "streak" tier.
   private readonly winStreak = new Map<string, number>()
   private identity: Identity = { name: '', color: NEUTRAL, avatar: 'cat' }
+  // Set once we're on our way back to the home screen (the room is gone).
+  private leavingGone = false
 
   // ── Derived state ──────────────────────────────────────────────────────────────────────────────
   readonly me = computed(() => this.players().find((p) => p.id === this.selfId()))
@@ -262,9 +264,13 @@ export class RoomStore {
       if (playerId && rejoinToken) this.net.send({ type: 'REJOIN', playerId, token: rejoinToken })
       else this.sendJoin()
     })
-    this.net.reconnecting$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((r) => this.reconnecting.set(r))
+    this.net.reconnecting$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((r) => {
+      this.reconnecting.set(r)
+      // A socket that keeps failing may mean the room is gone (closed, or the server restarted).
+      if (r) void this.checkRoomExists()
+    })
+    // An old link or a typo: don't sit on "connecting…" for a room that doesn't exist.
+    void this.checkRoomExists()
     this.net.state$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((m) => this.handle(m))
 
     this.zone.runOutsideAngular(() => this.net.connect(code))
@@ -274,6 +280,26 @@ export class RoomStore {
       this.game?.destroy()
       this.net.disconnect()
     })
+  }
+
+  // Fork extra: if the server says this room doesn't exist, go home with a banner saying so.
+  private async checkRoomExists(): Promise<void> {
+    try {
+      const res = await fetch(appUrl(`api/rooms/${encodeURIComponent(this.code())}`), {
+        cache: 'no-store',
+      })
+      if (res.status === 404) this.leaveGoneRoom()
+    } catch {
+      // Server unreachable: keep reconnecting, it may be a blip.
+    }
+  }
+
+  private leaveGoneRoom(): void {
+    if (this.leavingGone) return
+    this.leavingGone = true
+    sessionStorage.removeItem(this.pidKey())
+    this.net.resetIdentity()
+    this.zone.run(() => this.router.navigate(['/'], { queryParams: { gone: this.code() } }))
   }
 
   private sendJoin(): void {
@@ -375,6 +401,10 @@ export class RoomStore {
         this.router.navigate(['/'], { queryParams: { kicked: 1 } })
         break
       case 'JOIN_REJECTED':
+        if (msg.reason === 'room_not_found') {
+          this.leaveGoneRoom()
+          break
+        }
         this.message.set(
           this.transloco.translate('room.joinRejected', {
             reason: this.transloco.translate(`reason.${msg.reason}`),
@@ -403,6 +433,11 @@ export class RoomStore {
         )
         break
       case 'ERROR':
+        // The room was closed (idle timeout, or everyone left while a TV was watching).
+        if (msg.reason === 'room_closed') {
+          this.leaveGoneRoom()
+          break
+        }
         this.message.set(msg.reason)
         break
       default:

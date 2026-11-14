@@ -27,6 +27,9 @@ import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
   template: `
     <main class="join">
       <div class="sound"><app-audio-controls /></div>
+      @if (banner()) {
+        <p class="banner" role="alert">{{ banner() }}</p>
+      }
       <h1 class="logo" aria-label="Pixel Party">
         @for (ch of logo; track $index) {
           <span [style.color]="ch.color" [style.animationDelay.ms]="$index * 90">{{ ch.char }}</span>
@@ -145,6 +148,9 @@ import { PixelAvatarComponent } from '../../shared/pixel-avatar.component'
     .enter { display: flex; gap: 0.5rem; }
     .enter input { flex: 1; min-width: 0; text-transform: uppercase; }
     .msg { margin: 0; color: var(--c-red); font-size: var(--fs-sm); text-align: center; }
+    .banner { justify-self: center; width: min(calc(100vw - 2rem), 380px); margin: 0; padding: 0.7rem;
+      border: 3px solid var(--c-red); background: var(--c-panel); color: var(--c-text);
+      font-size: var(--fs-sm); line-height: 1.6; text-align: center; }
   `,
 })
 export class JoinComponent {
@@ -158,9 +164,15 @@ export class JoinComponent {
   constructor() {
     inject(AudioService).ensureMusic()
     // Bounced back here by the host removing our seat: explain why we landed on the entry screen.
-    if (this.route.snapshot.queryParamMap.get('kicked'))
-      this.message.set(this.transloco.translate('join.kicked'))
+    const q = this.route.snapshot.queryParamMap
+    if (q.get('kicked')) this.message.set(this.transloco.translate('join.kicked'))
+    // Fork extra: bounced back from a room that doesn't exist (old link, typo, or it closed).
+    const gone = q.get('gone')
+    if (gone) this.banner.set(this.transloco.translate('join.roomGone', { code: gone.slice(0, 8) }))
   }
+
+  // A notice across the top of the page (fork extra), e.g. "Room ABCD doesn't exist".
+  readonly banner = signal('')
 
   readonly avatars = AVATARS
   readonly colors = PLAYER_COLORS

@@ -27,7 +27,8 @@
     "kicked": "You were removed from the room by the host",
     "tagline": "{{n}} mini-games · one room · endless bragging rights",
     "or": "or join a friend",
-    "watch": "Watch"
+    "watch": "Watch",
+    "roomGone": "Room {{code}} doesn't exist (or has closed). Create a room or enter another code."
   },
   "room": {
     "code": "ROOM",
