@@ -1,5 +1,19 @@
 <main class="room" [class.in-round]="store.view() === 'round'" [class.watching]="store.watching()">
   <header class="topbar">
+    <button
+      #homeBtn
+      type="button"
+      class="arcade-btn home"
+      [class.armed]="leaveArmed()"
+      [title]="'room.home.hint' | transloco"
+      (click)="onHome(homeBtn)"
+    >
+      @if (leaveArmed()) {
+        {{ 'room.home.confirm' | transloco }}
+      } @else {
+        ⌂<span class="long"> {{ 'room.home.button' | transloco }}</span>
+      }
+    </button>
     <span class="room-code">
       {{ 'room.code' | transloco }} <b>{{ store.code() }}</b>
     </span>
