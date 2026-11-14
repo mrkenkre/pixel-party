@@ -18,6 +18,8 @@ still work exactly as before. Decision: D41 in [`implementation-decisions.md`](i
 - Rooms are still in memory only (D15): a room lives in its Durable Object while people are connected
   and disappears when it empties. A room nobody is connected to is dropped after 60 s.
 - A WebSocket must come from the page the Worker served (same origin), like party mode.
+- Watch-only screens (D42) run here too. When a room closes, any TV still watching is told and
+  disconnected, so a forgotten TV doesn't keep the room's Durable Object (and its duration) running.
 - `INTRO_SECONDS` (instructions screen before each round, default 30 here) and `ENGLISH_ONLY` (hides the
   EN|ES toggle) are `[vars]` in `apps/worker/wrangler.toml`.
 - The Worker sets the same Content-Security-Policy as the Bun server's static site.

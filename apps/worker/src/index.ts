@@ -124,12 +124,17 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   private housekeeping(): void {
+    const gone = !this.rooms?.get(this.code)
+    // A closed room may still have watch-only screens (TVs) open: they were told (room_closed), now
+    // let them go so a forgotten TV doesn't keep this object running.
+    if (gone) {
+      for (const s of [...this.sockets]) s.close()
+      this.shutdown()
+      return
+    }
     for (const s of this.sockets) s.send('{"type":"KEEPALIVE"}')
     if (this.sockets.size > 0) this.lastSocketAt = Date.now()
-    const gone = !this.rooms?.get(this.code)
-    if (this.sockets.size === 0 && (gone || Date.now() - this.lastSocketAt > UNUSED_ROOM_MS)) {
-      this.shutdown()
-    }
+    if (this.sockets.size === 0 && Date.now() - this.lastSocketAt > UNUSED_ROOM_MS) this.shutdown()
   }
 
   private publish(topic: string, data: string): void {
