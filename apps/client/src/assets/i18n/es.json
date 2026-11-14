@@ -27,7 +27,8 @@
     "kicked": "El anfitrión te ha echado de la sala",
     "tagline": "{{n}} minijuegos · una sala · piques para rato",
     "or": "o métete en la de un colega",
-    "watch": "Mirar"
+    "watch": "Mirar",
+    "roomGone": "La sala {{code}} no existe (o ya ha cerrado). Crea una sala o mete otro código."
   },
   "room": {
     "code": "SALA",
