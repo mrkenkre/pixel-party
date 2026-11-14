@@ -28,7 +28,8 @@ const hasLeaderboard = (): Promise<boolean> =>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .lb { text-decoration: none; text-align: center; display: inline-block; }
+    :host { display: block; }
+    .lb { text-decoration: none; text-align: center; display: block; }
   `,
 })
 export class LeaderboardLinkComponent {
