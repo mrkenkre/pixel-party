@@ -4,7 +4,14 @@ import type { NormalizedResult, PlayerId } from '../minigames/MiniGame'
 // Position -> points award table (scoring-system.md §2). Strong reward for 1st, compressed flat tail so
 // trailing players stay within comeback range; covers a full 12-player room, where only last place
 // scores 0. Configurable — the engine only needs "position -> points". Index 0 = 1st place.
+// Local change (party-20 branch, 20-player rooms): rooms of up to 12 score exactly as upstream; a bigger room
+// uses BIG_ROOM_AWARD_TABLE (via awardTableFor), so places 12-19 still get a point and only last gets 0.
 export const DEFAULT_AWARD_TABLE: readonly number[] = [10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 0]
+export const BIG_ROOM_AWARD_TABLE: readonly number[] = [
+  10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+]
+export const awardTableFor = (players: number): readonly number[] =>
+  players > DEFAULT_AWARD_TABLE.length ? BIG_ROOM_AWARD_TABLE : DEFAULT_AWARD_TABLE
 
 const pointsForPosition = (pos: number, table: readonly number[]): number =>
   table[Math.min(pos, table.length - 1)] ?? 0

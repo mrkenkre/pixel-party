@@ -19,7 +19,7 @@ their own device**: every client renders the full mini-game and shows its own vi
 real time with the rest.
 
 ### Value proposition
-- Instant group fun for **4–12 players** (usually up to 8), nothing to install (just a browser and a link/code).
+- Instant group fun for **4–12 players** (up to 20 on the `party-20` branch, D40; usually up to 8), nothing to install (just a browser and a link/code).
 - Short, replayable matches: 10–20 minute sessions with a variety of mini-games.
 - **Highly competitive and banter-driven** (*pique*): overtakes, comebacks, and laugh-out-loud moments
   are the point — a ranking plus catch-up/handicap keeps every session close.
@@ -34,7 +34,7 @@ real time with the rest.
 ## 2. Goals and success metrics
 
 ### Product goals
-1. Let a group (**4–12 players**, usually up to 8) play a full session with zero setup friction.
+1. Let a group (**4–12 players**; up to 20 on the `party-20` branch, D40; usually up to 8) play a full session with zero setup friction.
 2. Offer a catalog of mini-games that vary in mechanics, input type, and format (individual/duel/team).
 3. Keep every session competitive and fun via a ranking plus catch-up/handicap mechanics.
 4. Keep the real-time experience smooth and fair for all players.

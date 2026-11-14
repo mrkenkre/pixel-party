@@ -174,6 +174,9 @@ blueprint in `docs/technical-architecture.md`.
   break at phone sizes, but only games flagged `mobileFriendly` in the catalog promise a good phone
   experience (lobby badge + "Mobile" filter, "Best on PC" on the round intro). Those hints only show
   while someone in the room joined from a phone (D34); an all-PC party never sees them.
-- **Rooms of up to 12 players** (usually 4–8). Every mini-game declares the headcounts it supports
-  (`MINIGAMES[].players`, D27): the lobby only lets the host pick games that fit the connected players
-  and the engine skips the rest. Per-game ranges and the balance audit: `docs/player-fit-audit.md`.
+- **Rooms of up to 20 players** on the `party-20` branch (upstream: 12; usually 4–8). Every mini-game
+  declares the headcounts it supports (`MINIGAMES[].players`, D27): the lobby only lets the host pick games
+  that fit the connected players and the engine skips the rest. 47 games accept up to 20 (`BIG_ROOM_GAMES`
+  in `catalog/minigames.ts`); the 8 shared-arena/racing games keep 12 (D40). A new game stays at 12 until
+  it is checked with 20 players (`playtest-screenshots --bots=19`) and listed. Per-game ranges and the
+  balance audit: `docs/player-fit-audit.md`.

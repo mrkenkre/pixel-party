@@ -18,7 +18,7 @@ import { finalRanking } from '../../domain/services/finalRanking'
 import { applyScoringHandicap, type HandicapConfig } from '../../domain/services/handicap'
 import { demoteIdle } from '../../domain/services/idleDemotion'
 import { gameFitsRoom, playableLineup } from '../../domain/services/lineup'
-import { awardPoints, awardTeamPoints } from '../../domain/services/scoring'
+import { awardPoints, awardTableFor, awardTeamPoints } from '../../domain/services/scoring'
 import {
   buildRadars,
   buildSummary,
@@ -346,7 +346,9 @@ export class SessionEngine {
       ),
     )
     const result = isTeam ? raw : demoteIdle(raw, played)
-    const basePoints = isTeam ? awardTeamPoints(result, this.roundTeams) : awardPoints(result)
+    const basePoints = isTeam
+      ? awardTeamPoints(result, this.roundTeams)
+      : awardPoints(result, awardTableFor(result.placements.length))
     // Optional bounded catch-up on the awarded points, keyed off the standings BEFORE this round. The
     // host lobby toggle (room.handicap) is the on/off switch; the cap comes from server config.
     const standingsBefore = new Map(this.cumulative)

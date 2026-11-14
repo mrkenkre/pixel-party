@@ -1,5 +1,23 @@
 # Pixel Party
 
+> **This is a modified version of [Pixel Party](https://github.com/wansors/pixel-party) by
+> [wansors](https://github.com/wansors) (Andrea Cisneros), released under the [MIT License](LICENSE).**
+> All the games, art, sound and design are theirs. Thank you for making it open source!
+>
+> **What's different here** (branch `party-20`, maintained by [mrkenkre](https://github.com/mrkenkre)):
+> - **Rooms of up to 20 players** instead of 12, for bigger parties. Only mini-games whose screens were
+>   checked with 20 players accept more than 12: **47 of the 55 games**. The 8 shared-arena and racing
+>   games (Sumo Push, Sumo Ice, Micro Race, Rally Stage, Speed Circuit, Bomber Express, Asteroids, Street
+>   Brawl) keep their limit of 12 because they overcrowd at 20; in a bigger room the lobby greys them out,
+>   as it already does for any game outside its player range. Details: decision D40 in
+>   [`docs/implementation-decisions.md`](docs/implementation-decisions.md).
+> - A **20-place award table** for rooms above 12 (places 12-19 still score a point, only last scores 0).
+>   Rooms of up to 12 score exactly as in the original.
+> - Tests for the above: `apps/server/src/domain/services/bigRoom.test.ts`.
+>
+> Everything else is upstream Pixel Party v1.3.0. For the original project, its issues and releases, see
+> [wansors/pixel-party](https://github.com/wansors/pixel-party). The description below is the original README.
+
 A browser-based multiplayer collection of mini-games, *Mario Party* style: players connect to a room
 from their own device, play a series of short mini-games back to back, and accumulate points to form a
 session-wide ranking.
@@ -14,7 +32,7 @@ session-wide ranking.
 </p>
 
 > Current status: **feature-complete for its LAN-party scope** — 55 mini-games (free-for-all, team and
-> 1v1 duels) for rooms of up to 12 players, each tagged with the player counts it suits, lobby + host
+> 1v1 duels) for rooms of up to 12 players (20 on this fork's `party-20` branch), each tagged with the player counts it suits, lobby + host
 > setup, server-authoritative sessions with a cumulative ranking, post-match
 > skill radar, catch-up handicap, reconnect, EN/ES, chiptune audio and a retro arcade look. See
 > [Running locally](#running-locally) and [`docs/backlog.md`](docs/backlog.md).

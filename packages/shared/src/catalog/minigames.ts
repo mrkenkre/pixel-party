@@ -30,8 +30,12 @@ export const SKILL_AXES: readonly SkillAxis[] = [
   'focus',
 ]
 
-// A room's hard ceiling. The server's ROOM_MAX_PLAYERS may lower it; no game is built for more.
-export const MAX_ROOM_PLAYERS = 12
+// A room's hard ceiling. The server's ROOM_MAX_PLAYERS may lower it.
+// Local change (party-20 branch): 20 instead of upstream's 12. Only the games in BIG_ROOM_GAMES (end of this file)
+// accept more than 12; the rest keep max 12, so the lobby greys them out and the engine skips them in a
+// bigger room, exactly as it already does for any game outside its player range.
+export const MAX_ROOM_PLAYERS = 20
+export const UPSTREAM_MAX_PLAYERS = 12
 
 // Who a game is built for (D27). `min`/`max` are hard limits: the lobby only offers a game while the
 // room's connected headcount is inside them, and the session engine skips it otherwise. `best` is the
@@ -64,7 +68,7 @@ export interface MiniGameMeta {
 }
 
 // The catalog: one descriptor per mini-game, in lobby order.
-export const MINIGAMES: readonly MiniGameMeta[] = [
+const BASE_MINIGAMES: readonly MiniGameMeta[] = [
   {
     id: 'reaction-duel',
     name: 'Reaction Duel',
@@ -687,6 +691,68 @@ export const MINIGAMES: readonly MiniGameMeta[] = [
     axes: ['nerve', 'focus'],
   },
 ]
+
+// Local change (20-player rooms): games checked with 20 players (bots + headless Chrome screenshots of every
+// phase at phone size, 2026-11-14) play in rooms of up to MAX_ROOM_PLAYERS. Every other game keeps upstream's
+// limit of 12: the shared-arena and racing games (sumo-push, sumo-ice, micro-race, rally-stage,
+// speed-circuit, bomber-express, asteroids, brawl) overcrowd at 20, and a game added upstream stays at 12
+// until it has been checked and listed here.
+const BIG_ROOM_GAMES: ReadonlySet<MiniGameId> = new Set([
+  'reaction-duel',
+  'button-masher',
+  'color-trap',
+  'trivia',
+  'weird-trivia',
+  'balloon-chicken',
+  'number-rush',
+  'quick-math',
+  'odd-one-out',
+  'higher-lower',
+  'bug-smash',
+  'stop-clock',
+  'memory-flash',
+  'simon',
+  'pixel-hoops',
+  'pixel-weight',
+  'pixel-split',
+  'tug-of-war',
+  'sink-the-fleet',
+  'bomb-relay',
+  'fruit-catch',
+  'pixel-rain',
+  'pixel-dash',
+  'snake-arena',
+  'pixel-pong',
+  'match-pairs',
+  'quick-draw',
+  'pixel-roulette',
+  'sudoku-race',
+  'pixel-beat',
+  'fleet-battle',
+  'maze-sprint',
+  'line-clear-sprint',
+  'quick-tetris',
+  'bubble-pop',
+  'dash-100m',
+  'hurdles-110m',
+  'long-jump',
+  'javelin-throw',
+  'glass-bridge',
+  'freeze-doll',
+  'room-rush',
+  'pang',
+  'star-blaster',
+  'honeycomb-cut',
+  'jump-rope',
+  'marbles-duel',
+])
+const bigRoomOk = (id: MiniGameId): boolean => BIG_ROOM_GAMES.has(id)
+
+export const MINIGAMES: readonly MiniGameMeta[] = BASE_MINIGAMES.map((g) =>
+  g.players.max === UPSTREAM_MAX_PLAYERS && bigRoomOk(g.id)
+    ? { ...g, players: { ...g.players, max: MAX_ROOM_PLAYERS } }
+    : g,
+)
 
 export const MINIGAMES_BY_ID: ReadonlyMap<MiniGameId, MiniGameMeta> = new Map(
   MINIGAMES.map((m) => [m.id, m]),

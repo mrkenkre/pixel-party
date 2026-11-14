@@ -1100,3 +1100,34 @@ misses — each would be speculative or gated, and the project rule is "nothing 
 - **Revert**: the four parts are independent: the two `team.*` strings; the edge markers in
   `TrackRaceSceneBase`; `LEVELS`, the durations and the `SPLIT_POOL` filter in `pixelSplit.ts`; the
   `bat` / `fuel` kinds, `DROPS`, `flyCans` / `explode` in `brawl.ts` and the scene's `HELD` weapons.
+
+### D40 — 20-player rooms (`party-20` branch, fork) — DONE
+
+- **Date**: 2026-11-14. **Context**: a fork for a 20-guest party. D27 set 12 seats as the room ceiling;
+  this branch raises it without touching any game, so every merge from upstream stays easy.
+- **What**:
+  - `MAX_ROOM_PLAYERS = 20` (`packages/shared/src/catalog/minigames.ts`; `ROOM_MAX_PLAYERS` may still
+    lower it). The catalog entries are upstream's, untouched (`BASE_MINIGAMES`); `MINIGAMES` raises a
+    game's `max` from 12 to 20 only if its id is in `BIG_ROOM_GAMES`. The lobby, the "N sit out" count
+    and the engine's per-round fit check (D27/D28) then keep the other games out of a room of 13–20,
+    exactly as they already do for any game outside its range.
+  - **Which games**: every game was played at 20 (`playtest-screenshots --bots=19`, phone size, every
+    phase from intro to result; no console or server errors). 47 games show 20 players fine: each
+    player's own board (quizzes, puzzles, Tetris, Sudoku, Snake Arena's mini-boards), a scrolling or
+    wrapped roster, "+N" overflow chips (Tug of War, Fleet Battle), 20 lanes (100 m, 110 m hurdles),
+    or 10 simultaneous duels. **8 keep 12**: Sumo Push and Sumo Ice (20 sumos fill the ring, half are
+    out in seconds), Micro Race, Rally Stage and Speed Circuit (20 cars pile up on the grid), Bomber
+    Express (spawns are laid out for at most 12, `minigame-catalog.md`), Asteroids and Street Brawl
+    (an unreadable crowd in a small shared arena). A game added upstream stays at 12 until checked
+    and listed.
+  - **Scoring**: rooms of up to 12 keep `DEFAULT_AWARD_TABLE`. A bigger round uses
+    `BIG_ROOM_AWARD_TABLE` (same first 11 rows, then 1 point for 12th–19th, 0 for 20th) through
+    `awardTableFor(placements.length)` in `SessionEngine`, so only last place scores 0, as before.
+    Team rounds still rank two teams with the default table.
+  - **Colours**: still 12 player colours; players could already share one, and every screen pairs the
+    colour with the name and avatar.
+  - Tests: `apps/server/src/domain/services/bigRoom.test.ts` (ceiling, both tables, the 47/8 split,
+    games to play at every headcount 13–20). The playtest driver gained bots for 20-player rooms.
+- **Revert**: `MAX_ROOM_PLAYERS = 12` alone restores upstream behaviour (no game can then exceed 12 and
+  `awardTableFor` never picks the big table); delete `BIG_ROOM_GAMES`, `BIG_ROOM_AWARD_TABLE` and
+  `awardTableFor` to remove the code too.

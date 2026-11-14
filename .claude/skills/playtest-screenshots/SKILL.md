@@ -39,7 +39,7 @@ cd "$WORK" && timeout 180 bun shoot.ts <tag>-phone 390x844 fruit-catch
   default interaction (four canvas clicks + Space) with key taps / holds (`Key*ms`; puppeteer key names),
   `--more=N` adds N more in-play shots (`-play3`…), one every 3 s, re-running the interaction first —
   use them to exercise a game's real controls (hold-to-move, LEFT/RIGHT choices) instead of junk,
-  `--bots=N` sets how many bots join (default 3 → a 4-player room; `--bots=11` fills a 12-player room
+  `--bots=N` sets how many bots join (default 3 → a 4-player room; `--bots=11` fills a 12-player room, `--bots=19` a 20-player room on the `party-20` branch
   to check crowded layouts — mind each game's player range, D27), `--perf` logs a frame-cost probe at
   every shot (Phaser step avg/p95/max ms, long tasks, heap, live objects/tweens/textures) to stdout and
   `<tag>/perf.jsonl` — WebGL via SwiftShader, so read step cost and object growth, not fps.

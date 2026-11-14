@@ -94,6 +94,16 @@ const CREW = [
   ['Sole', '#f062d0', 'cat'],
   ['Pepe', '#d8d8e0', 'dog'],
   ['Inés', '#c8915a', 'bear'],
+  // Local: enough bots for a 20-player room (--bots=19).
+  ['Omar', '#ff3e7f', 'frog'],
+  ['Zoe', '#8be94b', 'fox'],
+  ['Ravi', '#ffcf4b', 'owl'],
+  ['Mia', '#ff7b3d', 'dog'],
+  ['Juno', '#b06bff', 'bear'],
+  ['Kai', '#4be3c3', 'cat'],
+  ['Lea', '#5b8cff', 'frog'],
+  ['Sam', '#f062d0', 'fox'],
+  ['Ari', '#d8d8e0', 'owl'],
 ] as const
 for (const [name, color, avatar] of CREW.slice(0, Math.max(0, botCount - 1)))
   bot(name, color, avatar)

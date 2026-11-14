@@ -391,7 +391,8 @@ Intentional differences given Pixel Party's nature:
    analogous to utopia's intent/system registries.
 4. **Formats**: FFA / duel-bracket / team, with pairing/bracket and team-assignment services in the
    domain (utopia has no equivalent).
-5. **Simpler netcode surface** — no AOI/zones (a room is small, ≤ 12 players); everyone in `room:<code>`
+5. **Simpler netcode surface** — no AOI/zones (a room is small, ≤ 12 players; ≤ 20 on the `party-20`
+   branch, D40); everyone in `room:<code>`
    receives the same snapshots.
 
 ---

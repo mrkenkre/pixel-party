@@ -103,8 +103,9 @@ Shared kit — reuse before writing a private helper (duplicates were hoisted ou
    headline strings short, long sentences in `bodyStyle`. In-font symbols: ★ ▲ ▼ ◀ ▶ ← → ↑ ↓ ×.
 6. Player counts: declare the catalog's `players` fit honestly (D27, `docs/player-fit-audit.md`) —
    `min` 2+ for last-standing/head-to-head games, `max` only up to what spawns/lanes/layout really
-   hold (12 is the room ceiling), `best` where it's most fun. Check a full room with the playtest's
-   `--bots=11`: show every player (or the top N **plus yourself**), never drop rows silently, and keep
+   hold (12 is upstream's room ceiling; 20 on the `party-20` branch, where a game only goes above 12 once
+   it is checked with `--bots=19` and listed in `BIG_ROOM_GAMES`, D40), `best` where it's most fun. Check a
+   full room with the playtest's `--bots=11` (or `--bots=19`): show every player (or the top N **plus yourself**), never drop rows silently, and keep
    rounds ending early when the remaining seats can't act.
 7. Cosmetic randomness that all players should see alike is derived from ids/indices (not
    `Math.random`); domain code never uses `Math.random`/`Date.now` (`bun run lint:determinism`).

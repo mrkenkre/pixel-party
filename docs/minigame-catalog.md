@@ -9,7 +9,8 @@ Initial mini-game catalog. Each one is designed for the **each player on their o
 ## Design pillars
 
 - **Party scale**: built for **4–12 players** in the same session (usually up to 8); each game declares
-  its own range — hard min/max plus a recommended band — in `MINIGAMES[].players` (D27).
+  its own range — hard min/max plus a recommended band — in `MINIGAMES[].players` (D27). On the `party-20`
+  branch rooms take up to 20, and 47 of the 55 games accept 13–20 players (`BIG_ROOM_GAMES`, D40).
 - **Competitive and banter-driven**: the point is the rivalry and the trash talk (*pique*) — moments
   that make the group laugh.
 - **Variety of formats**: a mix of **individual (free-for-all)**, **duels (1v1 / bracket)**, and

@@ -15,6 +15,12 @@
   ranges are the current ones: Glass Bridge, Bomber Express and Sumo Push now take 2–12 players, and
   Micro Race and Sumo ICE are recommended up to 10.
 
+> **`party-20` branch (D40, 2026-11-14)**: rooms take up to 20 players. 47 games accept 13–20 after a
+> 20-player playtest of every game (`BIG_ROOM_GAMES` in `catalog/minigames.ts`). These 8 keep a max of 12
+> because they overcrowd a shared arena or track at 20: Sumo Push, Sumo ICE, Micro Race, Rally Stage,
+> Speed Circuit, Bomber Express, Asteroids and Street Brawl. The "max 12" in the tables below is
+> upstream's ceiling; the recommended ranges are unchanged.
+
 ## How to read the ranges
 
 - **min / max** are hard limits. Outside them a game is greyed out in the lobby ("Needs 4-12
