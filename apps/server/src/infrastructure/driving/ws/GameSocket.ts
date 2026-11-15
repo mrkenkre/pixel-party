@@ -31,10 +31,14 @@ export interface SocketData {
   isHost: boolean
   // A WATCH socket (fork extra): subscribed to the room topic, never holds a seat.
   watcher?: boolean
+  // Fork extra: the client said LEAVE (Home button) before closing; its lobby seat goes right away.
+  leaving?: boolean
 }
 
 // Watchers per room (TVs/laptops showing the game); far above any real need, low enough to bound load.
 export const MAX_WATCHERS = 10
+// Fork extra: how long a lobby player may be away (e.g. sharing the link) before the seat goes.
+export const LOBBY_AWAY_GRACE_MS = 3 * 60_000
 
 // The socket surface the game core needs. Bun's ServerWebSocket fits it as-is; the Cloudflare
 // Worker build (apps/worker) wraps a Durable Object WebSocket in the same shape.
@@ -153,6 +157,10 @@ export function createGameCore(
   // the old socket's close has been processed; without this, that late close would drop the seat the
   // new socket just reclaimed (lobby) or mark it offline and move the host role away (mid-session).
   const seatSockets = new Map<string, GameWs>()
+  // Fork extra: lobby seats kept while their phone is away (player id -> since). Otherwise a host who
+  // switched to WhatsApp to share the link (the phone pauses the tab) lost the seat, or with nobody
+  // else in yet the whole room, and coming back said "room not found".
+  const awaySince = new Map<string, number>()
   const claimSeat = (ws: GameWs, playerId: string): void => {
     const prev = seatSockets.get(playerId)
     seatSockets.set(playerId, ws)
@@ -271,6 +279,7 @@ export function createGameCore(
     ws.data.isHost = room.isHost(player.id)
     claimSeat(ws, player.id)
     player.setConnected(true)
+    awaySince.delete(player.id)
     ws.subscribe(roomTopic(ws.data.roomCode))
     ws.subscribe(playerTopic(player.id))
     deps.metrics.inc('rejoins')
@@ -353,6 +362,8 @@ export function createGameCore(
     }
     // A line-up where no game fits the room (headcount, empty team — D27/D28) would silently fall back
     // to a default game.
+    // Seats still away from the lobby don't go into the game.
+    dropAwaySeats(room, 0)
     if (room.minigameIds.length > 0 && playableLineup(room).length === 0) {
       send(ws, { type: 'ACK', intent: 'START_SESSION', ok: false, reason: 'no_games_fit' })
       return
@@ -536,6 +547,7 @@ export function createGameCore(
         handleMinigameInput(ws, msg)
         break
       case 'LEAVE':
+        ws.data.leaving = true
         ws.close()
         break
       default: {
@@ -546,6 +558,30 @@ export function createGameCore(
         }
       }
     }
+  }
+
+  // Remove lobby seats away for at least minMs; closes the room if that empties it.
+  const dropAwaySeats = (room: Room, minMs: number): void => {
+    const now = deps.clock.now()
+    let dropped = false
+    for (const p of room.list()) {
+      const since = awaySince.get(p.id)
+      if (since === undefined || p.connected || now - since < minMs) continue
+      awaySince.delete(p.id)
+      room.remove(p.id)
+      dropped = true
+      deps.logger.info('player_left', { room: room.code, playerId: p.id, reason: 'away' })
+    }
+    if (!dropped) return
+    if (room.isEmpty) {
+      manager.stop(room.code)
+      deps.rooms.remove(room.code)
+      closeForWatchers(room.code)
+      deps.logger.info('room_closed', { room: room.code, reason: 'empty' })
+      return
+    }
+    room.reassignHostIfDisconnected()
+    broadcastLobby(room)
   }
 
   const teardown = (ws: GameWs): void => {
@@ -566,7 +602,11 @@ export function createGameCore(
     // disconnected. Tear the room down once nobody is left connected.
     if (manager.isRunning(room.code) && player) {
       player.setConnected(false)
-      deps.logger.info('player_dropped', { room: room.code, playerId: player.id, phase: room.phase })
+      deps.logger.info('player_dropped', {
+        room: room.code,
+        playerId: player.id,
+        phase: room.phase,
+      })
       if (!room.hasConnectedPlayers) {
         manager.stop(room.code)
         deps.rooms.remove(room.code)
@@ -581,7 +621,17 @@ export function createGameCore(
       broadcastLobby(room)
       return
     }
+    // A dropped lobby socket (phone switched apps, network blip) keeps its seat, host role included,
+    // for a while; see awaySince. Leaving on purpose (LEAVE) lets go of it now.
+    if (player?.connected && !ws.data.leaving) {
+      player.setConnected(false)
+      awaySince.set(player.id, deps.clock.now())
+      deps.logger.info('player_away', { room: room.code, playerId: player.id })
+      broadcastLobby(room)
+      return
+    }
     room.remove(ws.data.playerId)
+    awaySince.delete(ws.data.playerId)
     deps.logger.info('player_left', { room: room.code, playerId: ws.data.playerId })
     if (room.isEmpty) {
       manager.stop(room.code)
@@ -660,6 +710,9 @@ export function createGameCore(
   const sweepTimer = setInterval(
     () =>
       guard('sweep', () => {
+        for (const room of deps.rooms.list())
+          if (room.phase === 'lobby' && !manager.isRunning(room.code))
+            dropAwaySeats(room, LOBBY_AWAY_GRACE_MS)
         const reaped = reapIdleRooms({
           rooms: deps.rooms,
           manager,
