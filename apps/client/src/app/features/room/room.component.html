@@ -15,7 +15,7 @@
       }
     </button>
     <span class="room-code">
-      {{ 'room.code' | transloco }} <b>{{ store.code() }}</b>
+      <span class="lbl">{{ 'room.code' | transloco }}</span> <b>{{ store.code() }}</b>
     </span>
     @if (store.currentRound(); as r) {
       <span class="round-info">

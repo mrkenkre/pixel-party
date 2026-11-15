@@ -217,6 +217,11 @@ footer {
     .home .long {
       display: none;
     }
+    // Fork extra: with the host's SKIP and END buttons the bar ran out of room and pushed SND off the
+    // screen; the code alone is enough here.
+    .room-code .lbl {
+      display: none;
+    }
   }
   .round .round-layout {
     flex-direction: column-reverse;
