@@ -465,23 +465,24 @@
   color: var(--c-dim);
   text-transform: uppercase;
 
-  // Fork extra: Rounds and Get ready side by side. On phones each label sits above its − value +,
-  // so both fit one row.
+  // Fork extra: the host settings sit under the room code (no scrolling to reach them). Rounds and
+  // Get ready side by side, each label above its − value +, so both fit the narrow column.
+  &.settings {
+    border-top: none;
+    padding-top: 0;
+  }
   .steppers {
     display: flex;
     align-items: center;
-    gap: 0.6rem 1.25rem;
-    @media (max-width: 600px) {
-      gap: 1rem;
-      .rounds {
-        display: grid;
-        grid-template-columns: auto auto auto;
-        justify-items: center;
-        row-gap: 0.3rem;
-        .label {
-          grid-column: 1 / -1;
-          justify-self: start;
-        }
+    gap: 1.25rem;
+    .rounds {
+      display: grid;
+      grid-template-columns: auto auto auto;
+      justify-items: center;
+      row-gap: 0.3rem;
+      .label {
+        grid-column: 1 / -1;
+        justify-self: start;
       }
     }
   }
@@ -594,7 +595,7 @@
   .actions {
     padding: 0.6rem 0.75rem;
   }
-  .config .coverage {
-    display: none;
+  .config:not(.settings) {
+    display: none; // only the coverage radar is left down there
   }
 }
