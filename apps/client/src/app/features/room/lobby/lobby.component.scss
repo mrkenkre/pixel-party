@@ -465,6 +465,26 @@
   color: var(--c-dim);
   text-transform: uppercase;
 
+  // Fork extra: Rounds and Get ready side by side. On phones each label sits above its − value +,
+  // so both fit one row.
+  .steppers {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem 1.25rem;
+    @media (max-width: 600px) {
+      gap: 1rem;
+      .rounds {
+        display: grid;
+        grid-template-columns: auto auto auto;
+        justify-items: center;
+        row-gap: 0.3rem;
+        .label {
+          grid-column: 1 / -1;
+          justify-self: start;
+        }
+      }
+    }
+  }
   .rounds {
     display: flex;
     align-items: center;
