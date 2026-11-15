@@ -11,6 +11,8 @@ export class Room {
   private _rounds = 0
   // Host-toggled bounded scoring catch-up for the session (Phase 3). Default off.
   private _handicap = false
+  // Fork extra: host-picked "get ready" seconds before each round; null = the server default.
+  private _introSec: number | null = null
   // Wall-clock ms of the last meaningful activity (set by the adapter via the Clock port). The idle
   // sweeper reaps rooms that go quiet for too long — abandoned lobbies and never-joined rooms.
   private _lastActivityAt = 0
@@ -40,6 +42,12 @@ export class Room {
   }
   get handicap(): boolean {
     return this._handicap
+  }
+  get introSec(): number | null {
+    return this._introSec
+  }
+  setIntroSec(sec: number): void {
+    this._introSec = sec
   }
   get lastActivityAt(): number {
     return this._lastActivityAt

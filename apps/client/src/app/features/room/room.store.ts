@@ -4,7 +4,9 @@ import { Router } from '@angular/router'
 import { TranslocoService } from '@jsverse/transloco'
 import {
   type AvatarId,
+  DEFAULT_INTRO_SEC,
   fitsPlayers,
+  INTRO_SEC_CHOICES,
   MINIGAMES,
   MINIGAMES_BY_ID,
   type MiniGameFormat,
@@ -125,6 +127,8 @@ export class RoomStore {
   readonly usesTeams = signal(false)
   // Bounded scoring catch-up toggle (Phase 3), mirrored from LOBBY_STATE.
   readonly handicap = signal(false)
+  // Fork extra: seconds of "get ready" countdown before each round (host setting).
+  readonly introSec = signal<number>(DEFAULT_INTRO_SEC)
 
   readonly intro = signal<RoundIntro | null>(null)
   readonly countdown = signal<number | null>(null)
@@ -327,6 +331,7 @@ export class RoomStore {
         this.rounds.set(msg.rounds)
         this.usesTeams.set(msg.usesTeams)
         this.handicap.set(msg.handicap)
+        this.introSec.set(msg.introSec ?? DEFAULT_INTRO_SEC)
         this.maybeSendDefaultConfig(msg.minigameIds)
         // Keyed off the server's phase (not the current view): a LOBBY_STATE broadcast during an active
         // round (e.g. another player reconnecting) always carries that round's phase, so it never snaps
@@ -551,13 +556,19 @@ export class RoomStore {
   // ── Intents ────────────────────────────────────────────────────────────────────────────────────
   // No-repeat sessions play each selected game at most once, so the round count follows the selection
   // size whenever the line-up changes (picking a game adds a round, dropping one removes it).
-  private configure(ids: MiniGameId[], rounds = ids.length, handicap?: boolean): void {
+  private configure(
+    ids: MiniGameId[],
+    rounds = ids.length,
+    handicap?: boolean,
+    introSec?: number,
+  ): void {
     if (!this.isHost()) return
     this.net.send({
       type: 'HOST_CONFIG',
       minigameIds: ids,
       rounds: Math.max(1, rounds),
       ...(handicap === undefined ? {} : { handicap }),
+      ...(introSec === undefined ? {} : { introSec }),
     })
   }
 
@@ -590,6 +601,16 @@ export class RoomStore {
   setRounds(value: number): void {
     const max = Math.max(1, this.playableGameIds().length)
     this.configure(this.selectedGameIds(), Math.max(1, Math.min(max, Math.round(value) || 1)))
+  }
+
+  // Fork extra: step through the offered "get ready" lengths (-1 shorter, +1 longer).
+  stepIntro(delta: number): void {
+    const choices: readonly number[] = INTRO_SEC_CHOICES
+    const at = choices.indexOf(this.introSec())
+    const from = at >= 0 ? at : choices.indexOf(DEFAULT_INTRO_SEC)
+    const next = choices[Math.max(0, Math.min(choices.length - 1, from + delta))]
+    const rounds = this.rounds() || this.selectedGameIds().length
+    if (next !== undefined) this.configure(this.selectedGameIds(), rounds, undefined, next)
   }
 
   toggleHandicap(on: boolean): void {

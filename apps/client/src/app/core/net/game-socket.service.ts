@@ -154,6 +154,8 @@ export class GameSocketService {
 
   disconnect(): void {
     this.intentionalClose = true
+    // Fork extra: tell the server this is a real leave, so it doesn't hold the lobby seat for a return.
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'LEAVE' }))
     this.ws?.close()
   }
 }

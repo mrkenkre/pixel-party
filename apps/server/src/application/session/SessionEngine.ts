@@ -202,14 +202,15 @@ export class SessionEngine {
     const meta = MINIGAMES_BY_ID.get(id)
     this.room.setPhase('round-intro')
     this.phase = 'intro'
-    this.phaseEndsAt = now + this.config.introMs
+    const introMs = this.room.introSec !== null ? this.room.introSec * 1000 : this.config.introMs
+    this.phaseEndsAt = now + introMs
     this.publish({
       type: 'ROUND_INTRO',
       round: this.roundIndex + 1,
       totalRounds: this.sequence.length,
       minigameId: id,
       format: meta?.format ?? 'ffa',
-      startsInMs: this.config.introMs,
+      startsInMs: introMs,
     })
   }
 

@@ -4,6 +4,7 @@ import {
   AXIS_COLORS,
   fitsPlayers,
   hexToCss,
+  INTRO_SEC_CHOICES,
   idealForPlayers,
   MINIGAMES,
   type MiniGameMeta,
@@ -125,6 +126,10 @@ export class LobbyComponent {
   deselectShown(): void {
     this.store.deselectGames(this.shownGames().map((g) => g.id))
   }
+
+  // Fork extra: bounds of the "get ready" stepper.
+  readonly introMin = INTRO_SEC_CHOICES[0]
+  readonly introMax = INTRO_SEC_CHOICES[INTRO_SEC_CHOICES.length - 1]
 
   stepRounds(delta: number): void {
     this.store.setRounds(this.store.effectiveRounds() + delta)
