@@ -236,6 +236,47 @@ describe('JOIN by name mid-session', () => {
   })
 })
 
+// Fork extra (party-20): the host stops a game mid-way to start over with different people.
+describe('END_SESSION', () => {
+  test('host only; back to the lobby, dropped seats let go, new players can join', async () => {
+    const code = await createRoom()
+    const { client: host } = await join(code, 'Host')
+    const { client: ada } = await join(code, 'Ada')
+    const { client: bob } = await join(code, 'Bob')
+    host.ws.send(JSON.stringify({ type: 'HOST_CONFIG', minigameIds: ['button-masher'], rounds: 1 }))
+    const intro = host.next('ROUND_INTRO')
+    host.ws.send(JSON.stringify({ type: 'START_SESSION' }))
+    await intro
+
+    // Not the host: refused, the game goes on.
+    ada.ws.send(JSON.stringify({ type: 'END_SESSION' }))
+    expect(await ada.next('ACK')).toMatchObject({
+      intent: 'END_SESSION',
+      ok: false,
+      reason: 'not_host',
+    })
+
+    bob.ws.close() // Bob leaves mid-game; his seat is held…
+    await Bun.sleep(100)
+    const ended = ada.next('SESSION_ENDED')
+    const lobby = ada.next('LOBBY_STATE')
+    const ack = host.next('ACK')
+    host.ws.send(JSON.stringify({ type: 'END_SESSION' }))
+    expect(await ended).toMatchObject({ type: 'SESSION_ENDED' })
+    const state = (await lobby) as Extract<ServerMsg, { type: 'LOBBY_STATE' }>
+    expect(state.phase).toBe('lobby')
+    expect(state.players.map((p) => p.name).sort()).toEqual(['Ada', 'Host']) // …until the game ends
+    expect(await ack).toMatchObject({ intent: 'END_SESSION', ok: true })
+
+    // A newcomer can join now, and a second END_SESSION has nothing to end.
+    const { welcome } = await join(code, 'Cleo')
+    expect(welcome.type).toBe('WELCOME')
+    host.ws.send(JSON.stringify({ type: 'END_SESSION' }))
+    expect(await host.next('ACK')).toMatchObject({ ok: false, reason: 'no_session' })
+    for (const c of [host, ada]) c.ws.close()
+  })
+})
+
 // Fork extra (party-20): a TV/laptop follows the room without a seat.
 describe('WATCH (spectator screen)', () => {
   test('gets the room broadcasts without taking a seat', async () => {

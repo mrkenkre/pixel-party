@@ -40,6 +40,7 @@ const VALIDATORS = {
   START_SESSION: () => true,
   PLAY_AGAIN: () => true,
   SKIP_ROUND: () => true,
+  END_SESSION: () => true,
   MINIGAME_INPUT: (m) => isObj(m.input),
   LEAVE: () => true,
 } satisfies Record<ClientMsg['type'], Validator>

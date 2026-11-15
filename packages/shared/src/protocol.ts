@@ -123,6 +123,9 @@ export type ClientMsg =
   // Host-only: abandon the current round (its intro or the game itself) without scoring it and move
   // on to the next one — the escape hatch for a round that misbehaves, so nobody has to wait it out.
   | { type: 'SKIP_ROUND' }
+  // Host-only (fork extra): stop the whole session mid-way, unscored, and take the room back to the
+  // lobby; seats that dropped out are let go so new players can join before the next START_SESSION.
+  | { type: 'END_SESSION' }
   // Per-frame/round input for the active mini-game. Opaque payload validated by the active game.
   | { type: 'MINIGAME_INPUT'; input: unknown }
   | { type: 'LEAVE' }
@@ -187,6 +190,8 @@ export type ServerMsg =
   // The round was dropped with no points; the next ROUND_INTRO (or FINAL_RANKING) follows at once.
   // `byPlayerId` is the host who skipped it, or null when the server dropped a game that failed.
   | { type: 'ROUND_SKIPPED'; round: number; minigameId: MiniGameId; byPlayerId: string | null }
+  // The host ended the session early (fork extra): nothing scored; a lobby LOBBY_STATE follows.
+  | { type: 'SESSION_ENDED'; byPlayerId: string }
   // Session-wide cumulative ranking (shown between rounds).
   | { type: 'SCOREBOARD'; scores: ScoreEntryDto[] }
   // Session over — final ranking, plus the Phase 4 post-match analysis (radar per player + summary).
