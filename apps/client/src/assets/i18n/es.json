@@ -234,7 +234,7 @@
   "reason": {
     "room_not_found": "Esa sala no existe",
     "room_full": "La sala está a tope",
-    "session_in_progress": "La partida ya ha empezado",
+    "session_in_progress": "La partida ya ha empezado. ¿Estabas jugando? Entra con el mismo nombre y recuperas tu sitio",
     "name_taken": "Ese nombre ya lo tiene otro",
     "no_games_fit": "Ningún juego elegido vale para tantos jugadores",
     "invalid_name": "Ponte un nombre con alguna letra, anda",

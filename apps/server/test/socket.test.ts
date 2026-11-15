@@ -205,6 +205,37 @@ describe('hostile messages never take the server down', () => {
   })
 })
 
+// Fork extra (party-20): a phone that lost its tab mid-game has no rejoin token; its name gets the
+// dropped seat back. A connected seat is never taken.
+describe('JOIN by name mid-session', () => {
+  test('reclaims a dropped seat, never a connected one', async () => {
+    const code = await createRoom()
+    const { client: host } = await join(code, 'Host')
+    const { client: ada, welcome } = await join(code, 'Ada')
+    if (welcome.type !== 'WELCOME') throw new Error('no welcome')
+    const { client: bob } = await join(code, 'Bob')
+    host.ws.send(JSON.stringify({ type: 'HOST_CONFIG', minigameIds: ['button-masher'], rounds: 1 }))
+    const intro = host.next('ROUND_INTRO')
+    host.ws.send(JSON.stringify({ type: 'START_SESSION' }))
+    await intro
+
+    // Bob is still connected: someone else using his name is turned away.
+    const imposter = await connect(code)
+    imposter.ws.send(JSON.stringify({ type: 'JOIN', name: 'bob', color: '#ff3e7f', avatar: 'cat' }))
+    expect(await imposter.next('JOIN_REJECTED')).toMatchObject({ reason: 'session_in_progress' })
+    expect(bob.ws.readyState).toBe(WebSocket.OPEN)
+
+    // Ada's phone drops; a fresh tab joining as "Ada" gets her seat (same id) back.
+    ada.ws.close()
+    await Bun.sleep(100)
+    const back = await connect(code)
+    back.ws.send(JSON.stringify({ type: 'JOIN', name: ' ada ', color: '#ff3e7f', avatar: 'cat' }))
+    const again = await back.next('WELCOME')
+    expect(again).toMatchObject({ playerId: welcome.playerId })
+    for (const c of [host, bob, back, imposter]) c.ws.close()
+  })
+})
+
 // Fork extra (party-20): a TV/laptop follows the room without a seat.
 describe('WATCH (spectator screen)', () => {
   test('gets the room broadcasts without taking a seat', async () => {

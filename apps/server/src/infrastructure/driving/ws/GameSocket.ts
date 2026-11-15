@@ -1,5 +1,5 @@
 import type { ClientMsg, PlayerDto, ServerMsg } from '@pp/shared'
-import { MINIGAMES_BY_ID, PROTOCOL_VERSION, TEAM_IDS } from '@pp/shared'
+import { cleanName, MINIGAMES_BY_ID, PROTOCOL_VERSION, TEAM_IDS } from '@pp/shared'
 import type { Clock } from '../../../application/ports/Clock'
 import type { LiveRoomRegistry } from '../../../application/ports/LiveRoomRegistry'
 import type { Publisher } from '../../../application/ports/Publisher'
@@ -198,6 +198,19 @@ export function createGameCore(
 
   const handleJoin = (ws: GameWs, msg: Extract<ClientMsg, { type: 'JOIN' }>): void => {
     if (ws.data.playerId || ws.data.watcher) return // already joined (or watching) on this socket
+    // Fork extra: mid-session, a JOIN under the name of a seat that has dropped takes that seat back
+    // (score included). A phone that lost its tab (reopened the link, scanned the QR again, switched
+    // browser) has no rejoin token, so its name is all it has. Never a connected seat: nobody is kicked.
+    const live = deps.rooms.get(ws.data.roomCode)
+    if (live && live.phase !== 'lobby') {
+      const name = cleanName(msg.name).toLowerCase()
+      const seat = live.list().find((p) => !p.connected && p.name.toLowerCase() === name)
+      if (seat) {
+        deps.logger.info('seat_reclaimed_by_name', { room: live.code, playerId: seat.id })
+        handleRejoin(ws, { type: 'REJOIN', playerId: seat.id, token: seat.rejoinToken })
+        return
+      }
+    }
     const result = deps.joinRoom.execute({
       code: ws.data.roomCode,
       name: msg.name,

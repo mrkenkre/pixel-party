@@ -196,13 +196,30 @@ export class JoinComponent {
 
   // Prefilled with a fun random name so a player can jump straight to "Crear sala"/"Entrar"; the first
   // click into the field clears it to make room for typing a real one (see onNameFocus()).
-  name = this.randomName()
-  private nameIsDefault = true
+  // Fork extra: the last name/avatar/color used on this device comes back, so a player whose tab was
+  // lost mid-game re-enters as the same name, and the server hands their seat back.
+  private readonly last = JoinComponent.lastIdentity()
+  name = this.last?.name ?? this.randomName()
+  private nameIsDefault = !this.last
   // Invite links (/?code=XXXX) land here with the room pre-filled; the player still picks identity.
   code = this.route.snapshot.queryParamMap.get('code')?.toUpperCase() ?? ''
-  readonly avatar = signal<AvatarId>(AVATARS[0])
-  readonly color = signal<string>(PLAYER_COLORS[0])
+  readonly avatar = signal<AvatarId>(this.last?.avatar ?? AVATARS[0])
+  readonly color = signal<string>(this.last?.color ?? PLAYER_COLORS[0])
   readonly message = signal('')
+
+  private static lastIdentity(): { name: string; avatar: AvatarId; color: string } | null {
+    try {
+      const v = JSON.parse(localStorage.getItem('pp:me') ?? 'null')
+      if (typeof v?.name !== 'string' || !v.name.trim()) return null
+      return {
+        name: v.name.slice(0, 16),
+        avatar: (AVATARS as readonly string[]).includes(v.avatar) ? v.avatar : AVATARS[0],
+        color: PLAYER_COLORS.includes(v.color) ? v.color : PLAYER_COLORS[0],
+      }
+    } catch {
+      return null
+    }
+  }
 
   private randomName(): string {
     const adjective =
@@ -248,6 +265,13 @@ export class JoinComponent {
 
   private enter(code: string): void {
     const name = this.name.trim()
+    try {
+      if (name)
+        localStorage.setItem(
+          'pp:me',
+          JSON.stringify({ name, avatar: this.avatar(), color: this.color() }),
+        )
+    } catch {}
     this.router.navigate(['/room', code], {
       queryParams: { avatar: this.avatar(), color: this.color(), ...(name ? { name } : {}) },
     })

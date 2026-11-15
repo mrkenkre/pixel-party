@@ -61,7 +61,45 @@ export class GameSocketService {
     this.open()
   }
 
+  // Fork extra: phones (iOS Safari above all) suspend a backgrounded page, and its socket can come back
+  // looking OPEN while the server long since dropped it: taps go nowhere and onclose never fires. So
+  // after the page was hidden for a few seconds, or the network comes back, open a fresh socket at once
+  // (the room store REJOINs on it; the server closes the old one).
+  private hiddenAt = 0
+  private watchingLifecycle = false
+  private watchLifecycle(): void {
+    if (this.watchingLifecycle || typeof document === 'undefined') return
+    this.watchingLifecycle = true
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.hiddenAt = Date.now()
+      else if (this.hiddenAt && Date.now() - this.hiddenAt > 3000) this.reconnectNow()
+    })
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) this.reconnectNow()
+    })
+    window.addEventListener('online', () => this.reconnectNow())
+  }
+
+  private reconnectNow(): void {
+    this.hiddenAt = 0
+    if (!this.lastUrl || this.intentionalClose || this.protocolMismatch) return
+    if (this.reconnectTimer !== undefined) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = undefined
+    const old = this.ws
+    if (old) {
+      // Detach first, so the old socket's late close doesn't schedule a second reconnect.
+      old.onopen = old.onclose = old.onmessage = null
+      try {
+        old.close()
+      } catch {}
+    }
+    this.reconnectAttempts = 0
+    this.zone.run(() => this.reconnecting$.next(true))
+    this.open()
+  }
+
   private open(): void {
+    this.watchLifecycle()
     this.ws = new WebSocket(this.lastUrl)
 
     this.ws.onopen = () => {
@@ -78,7 +116,8 @@ export class GameSocketService {
         return
       }
       // Bounded exponential backoff; scheduled OUTSIDE zone.run so the timer never ticks CD.
-      const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30_000)
+      // Capped at 5 s (fork): a player mid-round can't sit out half a game waiting for a retry.
+      const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 5_000)
       this.reconnectAttempts++
       this.zone.run(() => this.reconnecting$.next(true))
       this.reconnectTimer = setTimeout(() => this.open(), delay)
