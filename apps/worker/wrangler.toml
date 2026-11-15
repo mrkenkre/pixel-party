@@ -32,3 +32,9 @@ NODE_ENV = "production"
 INTRO_SECONDS = "30"
 # "true" hides the EN|ES toggle and keeps the UI in English.
 ENGLISH_ONLY = "true"
+
+# Workers Logs: keeps the game's event lines (joins, rejoins, drops, rounds, errors; player ids, never
+# names) and one line per request, searchable in the dashboard for 3 days. Free plan: 200k events/day.
+[observability]
+enabled = true
+head_sampling_rate = 1
