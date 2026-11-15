@@ -38,7 +38,8 @@ interface Env {
 const ROOM_CODE = /^[A-HJ-NP-Z2-9]{3,8}$/
 const MAX_FRAME = 64 * 1024 // like the Bun server's maxPayloadLength
 const KEEPALIVE_MS = 25_000 // keeps quiet lobby sockets open through the edge
-const UNUSED_ROOM_MS = 60_000 // a room nobody is connected to is dropped after this
+const UNUSED_ROOM_MS = 4 * 60_000 // a room nobody is connected to is dropped after this; longer
+// than the lobby away grace (LOBBY_AWAY_GRACE_MS) so a host sharing the link keeps the room
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
