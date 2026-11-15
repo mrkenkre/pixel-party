@@ -267,53 +267,56 @@
       </ul>
 
       <div class="config">
-        <div class="rounds">
-          <span class="label">{{ 'room.lobby.rounds' | transloco }}</span>
-          @if (store.isHost()) {
-            <button
-              type="button"
-              class="mini step"
-              [disabled]="store.effectiveRounds() <= 1"
-              (click)="stepRounds(-1)"
-            >
-              −
-            </button>
-          }
-          <span class="value">{{ store.effectiveRounds() }}</span>
-          @if (store.isHost()) {
-            <button
-              type="button"
-              class="mini step"
-              [disabled]="store.effectiveRounds() >= store.playableGameIds().length"
-              (click)="stepRounds(1)"
-            >
-              +
-            </button>
-          }
-        </div>
-        <div class="rounds intro-time">
-          <span class="label">{{ 'room.lobby.getReady' | transloco }}</span>
-          @if (store.isHost()) {
-            <button
-              type="button"
-              class="mini step"
-              [disabled]="store.introSec() <= introMin"
-              (click)="store.stepIntro(-1)"
-            >
-              −
-            </button>
-          }
-          <span class="value">{{ store.introSec() }}s</span>
-          @if (store.isHost()) {
-            <button
-              type="button"
-              class="mini step"
-              [disabled]="store.introSec() >= introMax"
-              (click)="store.stepIntro(1)"
-            >
-              +
-            </button>
-          }
+        <!-- Fork extra: Rounds and Get ready share one row. -->
+        <div class="steppers">
+          <div class="rounds">
+            <span class="label">{{ 'room.lobby.rounds' | transloco }}</span>
+            @if (store.isHost()) {
+              <button
+                type="button"
+                class="mini step"
+                [disabled]="store.effectiveRounds() <= 1"
+                (click)="stepRounds(-1)"
+              >
+                −
+              </button>
+            }
+            <span class="value">{{ store.effectiveRounds() }}</span>
+            @if (store.isHost()) {
+              <button
+                type="button"
+                class="mini step"
+                [disabled]="store.effectiveRounds() >= store.playableGameIds().length"
+                (click)="stepRounds(1)"
+              >
+                +
+              </button>
+            }
+          </div>
+          <div class="rounds intro-time">
+            <span class="label">{{ 'room.lobby.getReady' | transloco }}</span>
+            @if (store.isHost()) {
+              <button
+                type="button"
+                class="mini step"
+                [disabled]="store.introSec() <= introMin"
+                (click)="store.stepIntro(-1)"
+              >
+                −
+              </button>
+            }
+            <span class="value">{{ store.introSec() }}s</span>
+            @if (store.isHost()) {
+              <button
+                type="button"
+                class="mini step"
+                [disabled]="store.introSec() >= introMax"
+                (click)="store.stepIntro(1)"
+              >
+                +
+              </button>
+            }
+          </div>
         </div>
         <label class="handicap" [class.disabled]="!store.isHost()">
           <input
