@@ -327,6 +327,26 @@ describe('last player away from the lobby', () => {
   })
 })
 
+// Fork extra: the host picks the "get ready" countdown before each round.
+describe('HOST_CONFIG introSec', () => {
+  test('an offered length is used for ROUND_INTRO; anything else is ignored', async () => {
+    const code = await createRoom()
+    const { client: host } = await join(code, 'Host')
+    const cfg = { type: 'HOST_CONFIG', minigameIds: ['button-masher'], rounds: 1 }
+    await Bun.sleep(50)
+    let lobby = host.next('LOBBY_STATE')
+    host.ws.send(JSON.stringify({ ...cfg, introSec: 7 }))
+    expect(((await lobby) as Extract<ServerMsg, { type: 'LOBBY_STATE' }>).introSec).toBe(0) // default (50 ms here)
+    lobby = host.next('LOBBY_STATE')
+    host.ws.send(JSON.stringify({ ...cfg, introSec: 10 }))
+    expect(((await lobby) as Extract<ServerMsg, { type: 'LOBBY_STATE' }>).introSec).toBe(10)
+    const intro = host.next('ROUND_INTRO')
+    host.ws.send(JSON.stringify({ type: 'START_SESSION' }))
+    expect(await intro).toMatchObject({ startsInMs: 10_000 })
+    host.ws.close()
+  })
+})
+
 // Fork extra (party-20): a TV/laptop follows the room without a seat.
 describe('WATCH (spectator screen)', () => {
   test('gets the room broadcasts without taking a seat', async () => {

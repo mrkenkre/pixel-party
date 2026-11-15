@@ -1,5 +1,5 @@
 import { networkInterfaces } from 'node:os'
-import { APP_VERSION } from '@pp/shared'
+import { APP_VERSION, DEFAULT_INTRO_SEC } from '@pp/shared'
 import type { SessionConfig } from './application/session/SessionEngine'
 import { CreateRoomUseCase } from './application/use-cases/CreateRoomUseCase'
 import { JoinRoomUseCase } from './application/use-cases/JoinRoomUseCase'
@@ -33,7 +33,7 @@ export function bootstrap() {
   const joinRoom = new JoinRoomUseCase(rooms, ids)
 
   const sessionConfig: SessionConfig = {
-    introMs: 5000,
+    introMs: DEFAULT_INTRO_SEC * 1000, // fork: 30 s "get ready"; the host can change it per room
     roundResultMs: 4000,
     scoreboardMs: 4000,
     roundEndGraceMs: 1500,

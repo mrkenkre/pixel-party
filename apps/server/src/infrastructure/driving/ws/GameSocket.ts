@@ -1,5 +1,11 @@
 import type { ClientMsg, PlayerDto, ServerMsg } from '@pp/shared'
-import { cleanName, MINIGAMES_BY_ID, PROTOCOL_VERSION, TEAM_IDS } from '@pp/shared'
+import {
+  cleanName,
+  INTRO_SEC_CHOICES,
+  MINIGAMES_BY_ID,
+  PROTOCOL_VERSION,
+  TEAM_IDS,
+} from '@pp/shared'
 import type { Clock } from '../../../application/ports/Clock'
 import type { LiveRoomRegistry } from '../../../application/ports/LiveRoomRegistry'
 import type { Publisher } from '../../../application/ports/Publisher'
@@ -99,7 +105,7 @@ function lineupUsesTeams(room: Room): boolean {
   return room.minigameIds.some((id) => MINIGAMES_BY_ID.get(id)?.format === 'team')
 }
 
-function lobbyState(room: Room): LobbyStateMsg {
+function lobbyState(room: Room, defaultIntroMs: number): LobbyStateMsg {
   return {
     type: 'LOBBY_STATE',
     phase: room.phase,
@@ -109,6 +115,7 @@ function lobbyState(room: Room): LobbyStateMsg {
     rounds: room.rounds,
     usesTeams: lineupUsesTeams(room),
     handicap: room.handicap,
+    introSec: room.introSec ?? Math.round(defaultIntroMs / 1000),
   }
 }
 
@@ -126,7 +133,7 @@ export function createGameCore(
   }
 
   const broadcastLobby = (room: Room): void => {
-    publish(roomTopic(room.code), JSON.stringify(lobbyState(room)))
+    publish(roomTopic(room.code), JSON.stringify(lobbyState(room, deps.sessionConfig.introMs)))
   }
 
   // Counters plus live gauges the counters can't hold (active rooms, running sessions).
@@ -194,7 +201,7 @@ export function createGameCore(
     ws.subscribe(roomTopic(room.code))
     deps.logger.info('watcher_joined', { room: room.code, watchers: count + 1 })
     send(ws, { type: 'WATCHING', protocolVersion: PROTOCOL_VERSION, roomCode: room.code })
-    send(ws, lobbyState(room))
+    send(ws, lobbyState(room, deps.sessionConfig.introMs))
     for (const m of manager.resumeMessages(room.code)) send(ws, m)
   }
 
@@ -316,6 +323,12 @@ export function createGameCore(
     const cap = ids.length > 0 ? Math.min(20, ids.length) : 20
     const rounds = Math.max(1, Math.min(cap, Math.floor(msg.rounds) || 1))
     room.configure(ids, rounds, msg.handicap ?? room.handicap)
+    // Fork extra: only the offered countdown lengths.
+    if (
+      msg.introSec !== undefined &&
+      (INTRO_SEC_CHOICES as readonly number[]).includes(msg.introSec)
+    )
+      room.setIntroSec(msg.introSec)
     ensureTeams(room)
     broadcastLobby(room)
   }

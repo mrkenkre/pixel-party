@@ -291,6 +291,30 @@
             </button>
           }
         </div>
+        <div class="rounds intro-time">
+          <span class="label">{{ 'room.lobby.getReady' | transloco }}</span>
+          @if (store.isHost()) {
+            <button
+              type="button"
+              class="mini step"
+              [disabled]="store.introSec() <= introMin"
+              (click)="store.stepIntro(-1)"
+            >
+              −
+            </button>
+          }
+          <span class="value">{{ store.introSec() }}s</span>
+          @if (store.isHost()) {
+            <button
+              type="button"
+              class="mini step"
+              [disabled]="store.introSec() >= introMax"
+              (click)="store.stepIntro(1)"
+            >
+              +
+            </button>
+          }
+        </div>
         <label class="handicap" [class.disabled]="!store.isHost()">
           <input
             type="checkbox"

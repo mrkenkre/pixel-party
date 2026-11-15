@@ -6,6 +6,9 @@ import type { TeamId } from './theme'
 // constant and surfaces a "please refresh" notice on mismatch — a stale cached bundle then fails loud
 // instead of misbehaving silently.
 export const PROTOCOL_VERSION = 5
+// Fork extra: the host's choices for the "get ready" countdown before each round, in seconds.
+export const INTRO_SEC_CHOICES = [5, 10, 15, 20, 30, 45, 60] as const
+export const DEFAULT_INTRO_SEC = 30
 
 // ---------------------------------------------------------------------------------------------------
 // Shared DTOs
@@ -106,7 +109,14 @@ export type ClientMsg =
   | { type: 'SET_READY'; ready: boolean }
   // Host-only: configure the session (which games, how many rounds, catch-up on/off). Ignored from
   // non-hosts. `handicap` omitted = leave the current setting unchanged.
-  | { type: 'HOST_CONFIG'; minigameIds: MiniGameId[]; rounds: number; handicap?: boolean }
+  // `introSec` (fork extra): the "get ready" countdown before each round; omitted = unchanged.
+  | {
+      type: 'HOST_CONFIG'
+      minigameIds: MiniGameId[]
+      rounds: number
+      handicap?: boolean
+      introSec?: number
+    }
   // Host-only: move a player to a team (team-format line-ups only).
   | { type: 'SET_TEAM'; playerId: string; team: TeamId }
   // Host-only: re-roll the balanced team assignment.
@@ -171,6 +181,8 @@ export type ServerMsg =
       usesTeams: boolean
       // Whether bounded scoring catch-up is enabled for this session (host toggle; Phase 3).
       handicap: boolean
+      // Fork extra: seconds of "get ready" countdown before each round (host setting).
+      introSec?: number
     }
   // A round is about to start: countdown intro so clients can preload the scene.
   | {

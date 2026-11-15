@@ -32,7 +32,8 @@ const VALIDATORS = {
   HOST_CONFIG: (m) =>
     isStrArray(m.minigameIds) &&
     isNum(m.rounds) &&
-    (m.handicap === undefined || isBool(m.handicap)),
+    (m.handicap === undefined || isBool(m.handicap)) &&
+    (m.introSec === undefined || isNum(m.introSec)),
   SET_TEAM: (m) => isStr(m.playerId) && isStr(m.team),
   SHUFFLE_TEAMS: () => true,
   TRANSFER_HOST: (m) => isStr(m.playerId),
