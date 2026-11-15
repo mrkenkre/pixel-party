@@ -231,7 +231,7 @@
   "reason": {
     "room_not_found": "Room not found",
     "room_full": "Room is full",
-    "session_in_progress": "Session already in progress",
+    "session_in_progress": "Game in progress. Were you playing? Join with the same name to get your seat back",
     "name_taken": "That name is taken",
     "no_games_fit": "No picked game fits this many players",
     "invalid_name": "Pick a name with some letters in it",
