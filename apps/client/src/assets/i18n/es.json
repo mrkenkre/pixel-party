@@ -225,6 +225,14 @@
       "doneSelf": "Has pasado de {{game}}: esta ronda no cuenta",
       "short": "SALTAR",
       "failed": "{{game}} ha petado y nos lo saltamos: esta ronda no cuenta"
+    },
+    "end": {
+      "button": "ACABAR PARTIDA",
+      "short": "FIN",
+      "confirm": "¿ACABAR?",
+      "hint": "Acabar la partida para todos y volver a la sala (sin puntos, no se guarda nada). Ahí puede entrar gente nueva",
+      "done": "{{host}} ha acabado la partida. Ya puede entrar gente nueva",
+      "doneSelf": "Has acabado la partida. Ya puede entrar gente nueva"
     }
   },
   "team": {

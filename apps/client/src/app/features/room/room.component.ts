@@ -52,6 +52,13 @@ export class RoomComponent implements OnInit {
     () => this.store.isHost() && (this.store.view() === 'intro' || this.store.view() === 'round'),
   )
   readonly skipArmed = signal(false)
+  // Fork extra: the host can end the whole game (any time it's on) and send everyone to the lobby.
+  readonly canEnd = computed(() => {
+    const v = this.store.view()
+    return this.store.isHost() && (v === 'intro' || v === 'round' || v === 'round-result')
+  })
+  readonly endArmed = signal(false)
+  private endTimer?: ReturnType<typeof setTimeout>
   private disarmTimer?: ReturnType<typeof setTimeout>
 
   // Fork extra: back to the home screen. While a game is on (intro or round) the first click arms it
@@ -64,6 +71,7 @@ export class RoomComponent implements OnInit {
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.disarmTimer)
       clearTimeout(this.leaveTimer)
+      clearTimeout(this.endTimer)
     })
   }
 
@@ -90,6 +98,19 @@ export class RoomComponent implements OnInit {
     }
     this.skipArmed.set(true)
     this.disarmTimer = setTimeout(() => this.skipArmed.set(false), 3000)
+  }
+
+  // Two taps within 3 s, like SKIP: a stray tap must not end everyone's game.
+  onEnd(button: HTMLElement): void {
+    button.blur()
+    clearTimeout(this.endTimer)
+    if (this.endArmed()) {
+      this.endArmed.set(false)
+      this.store.endSession()
+      return
+    }
+    this.endArmed.set(true)
+    this.endTimer = setTimeout(() => this.endArmed.set(false), 3000)
   }
 
   // 1-based round indices for the header's progress pips.

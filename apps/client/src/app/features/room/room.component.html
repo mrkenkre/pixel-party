@@ -52,6 +52,23 @@
           }
         </button>
       }
+      @if (canEnd()) {
+        <button
+          #endBtn
+          type="button"
+          class="arcade-btn skip end"
+          [class.armed]="endArmed()"
+          [title]="'room.end.hint' | transloco"
+          (click)="onEnd(endBtn)"
+        >
+          @if (endArmed()) {
+            {{ 'room.end.confirm' | transloco }}
+          } @else {
+            <span class="long">{{ 'room.end.button' | transloco }}</span>
+            <span class="short">{{ 'room.end.short' | transloco }}</span>
+          }
+        </button>
+      }
       <app-audio-controls />
     </span>
   </header>

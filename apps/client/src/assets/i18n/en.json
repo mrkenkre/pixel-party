@@ -222,6 +222,14 @@
       "doneSelf": "You skipped {{game}}: no points this round",
       "short": "SKIP",
       "failed": "{{game}} broke down and was skipped: no points this round"
+    },
+    "end": {
+      "button": "END GAME",
+      "short": "END",
+      "confirm": "END ALL?",
+      "hint": "End this game for everyone and go back to the lobby (no points, nothing saved). New players can join there",
+      "done": "{{host}} ended the game. New players can join now",
+      "doneSelf": "You ended the game. New players can join now"
     }
   },
   "team": {

@@ -377,6 +377,22 @@ export class RoomStore {
         this.audio.sfx.whoosh()
         this.game?.handle(msg)
         break
+      case 'SESSION_ENDED':
+        // Fork extra: the host stopped the session; the lobby LOBBY_STATE that follows switches the view.
+        this.clearCountdown()
+        this.game?.destroy()
+        this.game = undefined
+        this.intro.set(null)
+        this.scoreboard.set([])
+        this.previousScoreboard.set([])
+        this.showNotice(
+          this.transloco.translate(
+            msg.byPlayerId === this.selfId() ? 'room.end.doneSelf' : 'room.end.done',
+            { host: this.playerName(msg.byPlayerId) },
+          ),
+        )
+        this.audio.sfx.whoosh()
+        break
       case 'SCOREBOARD':
         // Snapshot the outgoing board before it's replaced, so rank movement can be shown.
         this.previousScoreboard.set(this.scoreboard())
@@ -611,6 +627,10 @@ export class RoomStore {
   }
 
   // Host escape hatch: abandon the current round (intro or game) unscored, e.g. when a game bugs out.
+  endSession(): void {
+    if (this.isHost()) this.net.send({ type: 'END_SESSION' })
+  }
+
   skipRound(): void {
     if (this.isHost()) this.net.send({ type: 'SKIP_ROUND' })
   }

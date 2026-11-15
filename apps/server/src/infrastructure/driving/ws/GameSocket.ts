@@ -406,6 +406,34 @@ export function createGameCore(
     send(ws, { type: 'ACK', intent: 'SKIP_ROUND', ok: true })
   }
 
+  // Host-only (fork extra): stop the session in progress at any point (intro, round, result) and take
+  // the room back to the lobby. Nothing is scored or recorded. Seats that dropped out mid-game are let
+  // go, so the room has space for new players before the host starts again.
+  const handleEndSession = (ws: GameWs): void => {
+    const room = deps.rooms.get(ws.data.roomCode)
+    if (!room || !ws.data.playerId || !room.isHost(ws.data.playerId)) {
+      send(ws, { type: 'ACK', intent: 'END_SESSION', ok: false, reason: 'not_host' })
+      return
+    }
+    if (!manager.isRunning(room.code)) {
+      send(ws, { type: 'ACK', intent: 'END_SESSION', ok: false, reason: 'no_session' })
+      return
+    }
+    manager.stop(room.code)
+    for (const p of room.list()) {
+      if (p.connected) p.setReady(false)
+      else room.remove(p.id)
+    }
+    room.setPhase('lobby')
+    publish(
+      roomTopic(room.code),
+      JSON.stringify({ type: 'SESSION_ENDED', byPlayerId: ws.data.playerId }),
+    )
+    deps.logger.info('session_ended', { room: room.code, by: ws.data.playerId })
+    broadcastLobby(room)
+    send(ws, { type: 'ACK', intent: 'END_SESSION', ok: true })
+  }
+
   const handleTransferHost = (
     ws: GameWs,
     msg: Extract<ClientMsg, { type: 'TRANSFER_HOST' }>,
@@ -497,6 +525,9 @@ export function createGameCore(
         break
       case 'PLAY_AGAIN':
         handlePlayAgain(ws)
+        break
+      case 'END_SESSION':
+        handleEndSession(ws)
         break
       case 'SKIP_ROUND':
         handleSkipRound(ws)
