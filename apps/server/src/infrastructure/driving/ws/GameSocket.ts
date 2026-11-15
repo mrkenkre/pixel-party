@@ -566,6 +566,7 @@ export function createGameCore(
     // disconnected. Tear the room down once nobody is left connected.
     if (manager.isRunning(room.code) && player) {
       player.setConnected(false)
+      deps.logger.info('player_dropped', { room: room.code, playerId: player.id, phase: room.phase })
       if (!room.hasConnectedPlayers) {
         manager.stop(room.code)
         deps.rooms.remove(room.code)
