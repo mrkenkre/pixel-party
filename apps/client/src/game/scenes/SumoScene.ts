@@ -186,6 +186,7 @@ export class SumoScene extends MiniGameScene<SumoSnapshot> {
     this.steerPointer = -1
     this.keyDriven = false
     this.sentDir = '0,0'
+    this.lastSentAt = 0
     this.dashReadyAt = 0
     this.dashReady = true
     this.spectating = false
@@ -356,7 +357,9 @@ export class SumoScene extends MiniGameScene<SumoSnapshot> {
     const dy = mag > 0 ? Math.round((this.dir.dy / mag) * 20) / 20 : 0
     const key = `${dx},${dy}`
     const throttled = !force && !this.keyDriven && now - this.lastSentAt < SEND_EVERY_MS
-    if (key === this.sentDir || throttled) return
+    // Same key: repeat every 300 ms once played (a "stop" lost on a reconnecting socket stuck).
+    const fresh = this.lastSentAt === 0 || now - this.lastSentAt < 300
+    if ((key === this.sentDir && fresh) || throttled) return
     this.sentDir = key
     this.lastSentAt = now
     this.sendInput({ kind: 'move', dx, dy })

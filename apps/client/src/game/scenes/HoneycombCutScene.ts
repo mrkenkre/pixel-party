@@ -164,8 +164,7 @@ export class HoneycombCutScene extends MiniGameScene<HoneycombSnapshot> {
       this.down = false
       this.sendNeedle(p.x, p.y, false, this.time.now)
     }
-    this.input.on('pointerup', lift)
-    this.input.on('pointerupoutside', lift)
+    this.input.on('pointerup', lift) // off-canvas releases too (MiniGameScene)
     const blur = (): void => {
       const p = this.pointerId === -1 ? undefined : this.input.manager.pointers[this.pointerId]
       if (p) lift(p)

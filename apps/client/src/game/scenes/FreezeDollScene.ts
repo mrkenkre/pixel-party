@@ -159,6 +159,7 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
   // Held controls → the mode sent to the server (only on change).
   private held = { keys: new Set<string>(), shift: false, walkPtr: -1, runPtr: -1 }
   private sentMode: FreezeDollMode = 'stop'
+  private sentAt = 0
   private paintedMode: FreezeDollMode | '' = ''
   // Snapshot timing: when the current snapshot arrived (dead reckoning + the sweep's local clock).
   private snapRef: unknown = null
@@ -192,6 +193,7 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
     this.buttons = []
     this.held = { keys: new Set(), shift: false, walkPtr: -1, runPtr: -1 }
     this.sentMode = 'stop'
+    this.sentAt = 0
     this.paintedMode = ''
     this.snapRef = null
     this.snapAt = 0
@@ -301,15 +303,12 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
       })
       this.buttons.push({ mode, img, up, down })
     }
-    // A finger lifted off the canvas (it slid down past the buttons) arrives as pointerupoutside,
-    // not pointerup: without it the button stayed held on Android Chrome.
-    const lift = (p: Phaser.Input.Pointer): void => {
+    // (A release off the canvas is forwarded as pointerup by MiniGameScene.)
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (p.id === this.held.walkPtr) this.held.walkPtr = -1
       if (p.id === this.held.runPtr) this.held.runPtr = -1
       this.syncMode()
-    }
-    this.input.on('pointerup', lift)
-    this.input.on('pointerupoutside', lift)
+    })
     const kb = this.input.keyboard
     for (const k of ['UP', 'W', 'SPACE']) {
       kb?.on(`keydown-${k}`, () => {
@@ -379,8 +378,12 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
       this.paintedMode = mode
       for (const b of this.buttons) b.img.setTexture(mode === b.mode ? b.down : b.up)
     }
-    if (mode === this.sentMode || !this.snap || this.state.final) return
+    if (!this.snap || this.state.final) return
+    // Repeat the held mode every 300 ms once you've played: a "stop" lost while the socket reconnects
+    // otherwise left the runner walking on its own (Android, 2026-11-15).
+    if (mode === this.sentMode && (this.sentAt === 0 || this.time.now - this.sentAt < 300)) return
     this.sentMode = mode
+    this.sentAt = this.time.now
     this.sendInput({ kind: 'move', mode })
   }
 

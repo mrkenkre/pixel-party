@@ -359,8 +359,7 @@ export class PixelHoopsScene extends MiniGameScene<PixelHoopsSnapshot> {
     this.placeHoop()
 
     this.input.on('pointerdown', () => this.startCharge())
-    this.input.on('pointerup', () => this.release())
-    this.input.on('pointerupoutside', () => this.release())
+    this.input.on('pointerup', () => this.release()) // off-canvas releases too (MiniGameScene)
     for (const k of ['SPACE', 'ENTER']) {
       this.onKey(k, () => this.startCharge())
       this.input.keyboard?.on(`keyup-${k}`, () => this.release())
