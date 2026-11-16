@@ -66,6 +66,11 @@ cd "$WORK" && timeout 180 bun shoot.ts <tag>-phone 390x844 fruit-catch
 - Team games get real teams (the lobby assigns them when the line-up has a team game). Bots never
   play properly, so opponents look idle and turn-based games mostly show waiting states.
 
+- **Lost-input regression** (fork): `cp .claude/skills/playtest-screenshots/dolldrop.ts "$WORK/"`, run a
+  party-mode server (`PORT=3100 NODE_ENV=production bun run apps/server/src/index.ts`, restarted after
+  each client build), then `cd "$WORK" && BASE=http://127.0.0.1:3100 bun dolldrop.ts` — must print
+  `RESULT: OK` (Freeze Doll stops even when its "stop" message is lost).
+
 ## Checklist when reviewing shots
 Nothing clipped or overlapping at 1280x800 **and** 390x844; the HUD strip (score chip, seconds,
 draining bar) fully visible; one obvious "what do I do now" prompt; player identity colors used for
