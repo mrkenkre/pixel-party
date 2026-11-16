@@ -97,7 +97,9 @@ export class DriveControls {
   sync(read: { drive: Drive; keys: boolean }, now: number, send: (d: Drive) => void): Drive {
     const d = read.drive
     const changed = d.steer !== this.sent.steer || d.throttle !== this.sent.throttle
-    if (changed && (read.keys || now - this.sentAt >= POINTER_SEND_MS)) {
+    // Unchanged: still repeat every 300 ms once driven (a lost "let go" kept the car going).
+    const stale = this.sentAt > 0 && now - this.sentAt > 300
+    if ((changed && (read.keys || now - this.sentAt >= POINTER_SEND_MS)) || stale) {
       this.sent.steer = d.steer
       this.sent.throttle = d.throttle
       this.sentAt = now

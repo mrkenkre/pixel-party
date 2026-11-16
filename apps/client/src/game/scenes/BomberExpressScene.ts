@@ -427,7 +427,8 @@ export class BomberExpressScene extends MiniGameScene<BomberSnapshot> {
     const me = this.me()
     if (!me?.alive || this.state.final) return
     const key = `${dir}|${alt}`
-    if (key === this.sent && !(dir && time - this.sentAt > 300)) return
+    // Repeat every 300 ms, a stop too: one lost on a reconnecting socket left you walking.
+    if (key === this.sent && time - this.sentAt <= 300) return
     if (!dir && this.sent === '') return
     this.sent = key
     this.sentAt = time

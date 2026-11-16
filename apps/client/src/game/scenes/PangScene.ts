@@ -95,6 +95,7 @@ export class PangScene extends MiniGameScene<PangSnapshot> {
   private lastFrameAt = 0
   private held = { left: false, right: false, leftPtr: -1, rightPtr: -1 }
   private sentDir = 0
+  private sentAt = 0
   private minisTick = -1
   private mine?: PangArena
   // Your position, predicted; the harpoon you just fired (until the server's snapshot shows it).
@@ -126,6 +127,7 @@ export class PangScene extends MiniGameScene<PangSnapshot> {
     this.lastFrameAt = 0
     this.held = { left: false, right: false, leftPtr: -1, rightPtr: -1 }
     this.sentDir = 0
+    this.sentAt = 0
     this.minisTick = -1
     this.mine = undefined
     this.predX = undefined
@@ -321,8 +323,11 @@ export class PangScene extends MiniGameScene<PangSnapshot> {
       const on = (b.act === 'L' && dir === -1) || (b.act === 'R' && dir === 1)
       if (b.img.texture.key !== (on ? b.down : b.up)) b.img.setTexture(on ? b.down : b.up)
     }
-    if (dir === this.sentDir || this.state.final || !this.snap) return
+    if (this.state.final || !this.snap) return
+    // Repeat every 300 ms once played: a "stop" lost on a reconnecting socket left you walking.
+    if (dir === this.sentDir && (this.sentAt === 0 || this.time.now - this.sentAt < 300)) return
     this.sentDir = dir
+    this.sentAt = this.time.now
     this.sendInput({ kind: 'move', dir })
   }
 

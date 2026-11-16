@@ -436,7 +436,9 @@ export class StarBlasterScene extends MiniGameScene<StarBlasterSnapshot> {
       dx = Math.round((vx / m) * 20) / 20
       dy = Math.round((vy / m) * 20) / 20
     }
-    if (dx === this.held.dx && dy === this.held.dy) return
+    // Same direction: repeat every 300 ms once played (a "stop" lost on a reconnecting socket stuck).
+    if (dx === this.held.dx && dy === this.held.dy && (this.sentAt === 0 || now - this.sentAt < 300))
+      return
     if (this.state.final || !this.mine || this.mine.out) return
     if (!fromKeys && now - this.sentAt < POINTER_SEND_MS) return
     this.held = { dx, dy }
