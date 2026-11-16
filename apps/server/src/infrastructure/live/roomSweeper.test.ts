@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import type { LiveRoomRegistry } from '../../application/ports/LiveRoomRegistry'
 import type { SessionManager } from '../../application/session/SessionManager'
+import { Player } from '../../domain/entities/Player'
 import { Room } from '../../domain/entities/Room'
-import { reapIdleRooms } from './roomSweeper'
+import { CONNECTED_IDLE_FACTOR, reapIdleRooms } from './roomSweeper'
 
 // Minimal registry backed by a Map; only the methods the sweeper touches are implemented.
 function fakeRegistry(rooms: Room[]): LiveRoomRegistry {
@@ -58,6 +59,21 @@ describe('reapIdleRooms', () => {
     })
     expect(reaped).toEqual([])
     expect(rooms.get('BUSY')).toBeDefined()
+  })
+
+  test('keeps a room with someone connected until the longer window, then reaps it', () => {
+    // People chatting on the final screen send nothing; the room must not close under them.
+    const chatty = room('CHATTY', 0)
+    chatty.add(Player.create({ id: 'a', name: 'a', color: '#fff', avatar: 'x' }))
+    expect(chatty.hasConnectedPlayers).toBe(true)
+    const rooms = fakeRegistry([chatty])
+    const manager = fakeManager(new Set())
+    const longWindow = IDLE_MS * CONNECTED_IDLE_FACTOR
+    expect(reapIdleRooms({ rooms, manager, now: IDLE_MS * 2, idleMs: IDLE_MS })).toEqual([])
+    expect(reapIdleRooms({ rooms, manager, now: longWindow, idleMs: IDLE_MS })).toEqual([])
+    expect(reapIdleRooms({ rooms, manager, now: longWindow + 1, idleMs: IDLE_MS })).toEqual([
+      'CHATTY',
+    ])
   })
 
   test('notifies onReap for each reaped room', () => {

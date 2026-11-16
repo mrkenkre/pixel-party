@@ -301,11 +301,15 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
       })
       this.buttons.push({ mode, img, up, down })
     }
-    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+    // A finger lifted off the canvas (it slid down past the buttons) arrives as pointerupoutside,
+    // not pointerup: without it the button stayed held on Android Chrome.
+    const lift = (p: Phaser.Input.Pointer): void => {
       if (p.id === this.held.walkPtr) this.held.walkPtr = -1
       if (p.id === this.held.runPtr) this.held.runPtr = -1
       this.syncMode()
-    })
+    }
+    this.input.on('pointerup', lift)
+    this.input.on('pointerupoutside', lift)
     const kb = this.input.keyboard
     for (const k of ['UP', 'W', 'SPACE']) {
       kb?.on(`keydown-${k}`, () => {
@@ -364,6 +368,12 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
   // Paints the held button and sends the mode when it changed (also called every frame, so a control
   // held before the first snapshot still reaches the server).
   private syncMode(): void {
+    // Safety net for any lost release event: a button only counts as held while its pointer is down.
+    for (const key of ['walkPtr', 'runPtr'] as const) {
+      const id = this.held[key]
+      if (id !== -1 && !this.input.manager.pointers.some((p) => p.id === id && p.isDown))
+        this.held[key] = -1
+    }
     const mode = this.desiredMode()
     if (mode !== this.paintedMode) {
       this.paintedMode = mode
