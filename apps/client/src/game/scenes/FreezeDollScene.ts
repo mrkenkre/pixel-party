@@ -156,7 +156,7 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
     up: string
     down: string
   }[] = []
-  // Held controls → the mode sent to the server (only on change).
+  // Held controls → the mode sent to the server (on change, then re-sent every 300 ms once played).
   private held = { keys: new Set<string>(), shift: false, walkPtr: -1, runPtr: -1 }
   private sentMode: FreezeDollMode = 'stop'
   private sentAt = 0
@@ -367,12 +367,6 @@ export class FreezeDollScene extends MiniGameScene<FreezeDollSnapshot> {
   // Paints the held button and sends the mode when it changed (also called every frame, so a control
   // held before the first snapshot still reaches the server).
   private syncMode(): void {
-    // Safety net for any lost release event: a button only counts as held while its pointer is down.
-    for (const key of ['walkPtr', 'runPtr'] as const) {
-      const id = this.held[key]
-      if (id !== -1 && !this.input.manager.pointers.some((p) => p.id === id && p.isDown))
-        this.held[key] = -1
-    }
     const mode = this.desiredMode()
     if (mode !== this.paintedMode) {
       this.paintedMode = mode
