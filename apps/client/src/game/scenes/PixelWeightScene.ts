@@ -330,8 +330,7 @@ export class PixelWeightScene extends MiniGameScene<PixelWeightSnapshot> {
     this.input.keyboard?.on('keydown', (e: KeyboardEvent) => this.typeKey(e))
     // A held − / + stops repeating when the button is released anywhere — or the window loses focus.
     const stop = (): void => this.stopRepeat()
-    this.input.on('pointerup', stop)
-    this.input.on('pointerupoutside', stop)
+    this.input.on('pointerup', stop) // off-canvas releases too (MiniGameScene)
     this.game.events.on(Phaser.Core.Events.BLUR, stop)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
       this.game.events.off(Phaser.Core.Events.BLUR, stop),

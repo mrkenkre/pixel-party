@@ -93,6 +93,12 @@ export abstract class MiniGameScene<S> extends Phaser.Scene {
     addArcadeBackdrop(this)
     if (opts.hud !== false) this.hud = new Hud(this, this.sfx)
     this.claimGameKeys()
+    // Fork extra: a finger lifted off the canvas (slid past the bottom buttons) arrives as
+    // pointerupoutside, not pointerup; held buttons then stayed pressed on Android Chrome. Every
+    // scene releases on pointerup, so hand them the outside release too.
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) =>
+      this.input.emit('pointerup', p, []),
+    )
   }
 
   // The game keys belong to the game while it runs. A page control left focused (the sound toggle, a
